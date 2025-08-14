@@ -472,6 +472,7 @@ export default function Pipelines() {
                     >
                       <Eye className="w-4 h-4" />
                     </Button> */}
+                    {/** */}
                     <Button
                       variant="ghost"
                       size="sm"
