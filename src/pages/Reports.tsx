@@ -21,7 +21,7 @@ export default function Reports() {
   }, [searchParams]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto mt-14 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Job Monitoring & Reports</h1>

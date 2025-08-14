@@ -16,6 +16,7 @@ import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ThemeProvider } from "@/hooks/useTheme";
 import QueryClient from "@/components/QueryClient";
+import Pipelines from "@/pages/Pipelines";
 
 import Jobs from "@/pages/Jobs";
 import ScheduleJob from "@/pages/ScheduleJob";
@@ -39,6 +40,7 @@ function App() {
               <Route path="business-logic" element={<BusinessLogic />} />
               <Route path="etl" element={<ETL />} />
               <Route path="schedule-job" element={<ScheduleJob />} />
+              <Route path = "pipelines" element = {<Pipelines />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -5,14 +5,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
-import { Search, Play, Eye, Plus, Edit, FileText, CalendarIcon, X, Network, Link } from "lucide-react"
+import { Search, Play, Eye, Plus, Edit, FileText, Calendar as CalendarIcon, X, Link } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import EnhancedEditJobDialog from "@/components/jobs/EnhancedEditJobDialog"
 import ViewJobDialog from "@/components/jobs/ViewJobDialog"
 import PipelineBuilderDialog from "@/components/jobs/PipelineBuilderDialog"
 import PipelineDetailsDialog from "@/components/jobs/PipelineDetailsDialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
+import { format, formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { Job } from "@/components/types/jobs"
 import type { Pipeline, Edge } from "@/components/types/pipeline"
@@ -27,6 +27,17 @@ interface JobStage {
 }
 
 const LOCAL_STORAGE_KEY = 'app_data';
+
+// Category color mapping with dark mode support
+const categoryColors: Record<string, string> = {
+  'Glue Jobs': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+  'Lambda Jobs': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100',
+  'Batch Jobs': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+  'ADF Jobs': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
+};
+
+// Status filter options
+const statusFilters = ['All', 'Completed', 'Running', 'Failed'];
 
 const mockJobs: Job[] = [
   {
@@ -418,6 +429,7 @@ export default function Jobs() {
   const [selectedJobForPipeline, setSelectedJobForPipeline] = useState<Job | null>(null)
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null)
   const [selectedJobForPipelines, setSelectedJobForPipelines] = useState<Job | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('All')
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -429,14 +441,14 @@ export default function Jobs() {
     } else {
       setJobs(mockJobs);
     }
-    filterJobs(); // Initial filter
+    filterJobs();
   }, []);
 
   // Save to localStorage on changes
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ jobs, pipelines }));
     filterJobs();
-  }, [jobs, pipelines, searchTerm, startDate, endDate]);
+  }, [jobs, pipelines, searchTerm, startDate, endDate, statusFilter]);
 
   const filterJobs = () => {
     let filtered = jobs.filter(job =>
@@ -450,6 +462,10 @@ export default function Jobs() {
       filtered = filtered.filter(job => new Date(job.lastRun) <= endDate);
     }
 
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(job => job.status === statusFilter);
+    }
+
     setFilteredJobs(filtered);
   };
 
@@ -460,11 +476,16 @@ export default function Jobs() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed': return 'bg-green-500';
-      case 'running': return 'bg-blue-500';
-      case 'failed': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'completed': return 'bg-green-500 text-white dark:bg-green-600 dark:text-white';
+      case 'running': return 'bg-blue-500 text-white dark:bg-blue-600 dark:text-white';
+      case 'failed': return 'bg-red-500 text-white dark:bg-red-600 dark:text-white';
+      default: return 'bg-gray-500 text-white dark:bg-gray-600 dark:text-white';
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, "MMM d, yyyy - h:mm a");
   };
 
   const handleRunJob = (job: Job) => {
@@ -532,7 +553,6 @@ export default function Jobs() {
 
     setPipelines(newPipelines);
 
-    // Update jobs with the new/updated pipeline associations
     setJobs(prevJobs => prevJobs.map(job => ({
       ...job,
       pipelines: newPipelines.filter(p => p.jobs.includes(job.id)),
@@ -546,7 +566,6 @@ export default function Jobs() {
   const handleDeletePipeline = (pipelineId: string) => {
     setPipelines(prev => prev.filter(p => p.id !== pipelineId));
 
-    // Update jobs to remove the deleted pipeline
     setJobs(prevJobs => prevJobs.map(job => ({
       ...job,
       pipelines: job.pipelines?.filter(p => p.id !== pipelineId) || [],
@@ -557,82 +576,112 @@ export default function Jobs() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="flex-1 mt-14 space-y-4 p-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Jobs</h2>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="container mx-auto p-6">
+        <div className="mb-6 mt-14 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              All Jobs ({filteredJobs.length})
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              View and manage your jobs and pipelines
+            </p>
+          </div>
           <div className="flex gap-2">
-            <Button onClick={handleCreateJob} className="flex items-center gap-2">
+            <Button onClick={handleCreateJob} className="flex items-center gap-2 bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4" /> Create Job
             </Button>
-            <Button onClick={handleOpenPipelineBuilder} className="flex items-center gap-2">
-              <Link className="w-4 h-4"  /> Create Pipeline
-            </Button>
+            {/* <Button onClick={handleOpenPipelineBuilder} className="flex items-center gap-2 bg-primary hover:bg-primary/90">
+              <Link className="w-4 h-4" /> Create Pipeline
+            </Button> */}
           </div>
         </div>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search jobs..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "w-[280px] justify-between",
-                        (!startDate || !endDate) && "text-muted-foreground"
-                      )}
-                    >
-                      {startDate && endDate
-                        ? `${format(startDate, "PPP")} - ${format(endDate, "PPP")}`
-                        : "Filter by last run date"}
-                      <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <div className="flex">
+            {/* Search and Filter Bar */}
+            <div className="p-4 border-b bg-muted/30">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search jobs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-background dark:bg-gray-800"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-10 justify-start text-left font-normal bg-background w-48 dark:bg-gray-800 dark:border-gray-600",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM dd, yyyy") : "Select a Date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background dark:bg-gray-800 dark:border-gray-600">
                       <Calendar
                         mode="single"
                         selected={startDate}
                         onSelect={setStartDate}
-                        initialFocus
+                        className="pointer-events-auto"
                       />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                                          </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background dark:bg-gray-800 dark:border-gray-600">
                       <Calendar
                         mode="single"
                         selected={endDate}
                         onSelect={setEndDate}
-                        initialFocus
+                        className="pointer-events-auto"
                       />
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    </PopoverContent>
+                  </Popover>
 
-                {(startDate || endDate) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearDateFilter}
-                    className="h-10 px-3"
-                    title="Clear date filter"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearDateFilter}
+                      className="h-10 px-3"
+                      title="Clear date filter"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {statusFilters.map(status => (
+                    <Button
+                      key={status}
+                      variant={statusFilter === status ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStatusFilter(status)}
+                      className={cn(
+                        "text-sm rounded-full",
+                        statusFilter === status
+                          ? "bg-primary text-white dark:bg-blue-500 dark:text-white"
+                          : "text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+                      )}
+                    >
+                      {status}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
 
+            {/* Table Header */}
             <div className="grid grid-cols-6 gap-4 px-6 py-3 bg-muted/20 border-b text-sm font-medium text-muted-foreground">
               <div>Job Name</div>
               <div>Category</div>
@@ -642,6 +691,7 @@ export default function Jobs() {
               <div>Actions</div>
             </div>
 
+            {/* Table Rows */}
             <div className="divide-y">
               {filteredJobs.map((job) => (
                 <div
@@ -656,12 +706,19 @@ export default function Jobs() {
                       </span>
                     )}
                   </div>
-                  <div className="text-muted-foreground">{job.category}</div>
+                  <div>
+                    <Badge className={cn(
+                      "text-xs",
+                      categoryColors[job.category] || 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white'
+                    )}>
+                      {job.category}
+                    </Badge>
+                  </div>
                   <div className="text-muted-foreground">
                     {job.pipelines && job.pipelines.length > 0 ? (
                       <Badge
                         variant="secondary"
-                        className="text-xs cursor-pointer hover:bg-secondary/80"
+                        className="text-xs cursor-pointer bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-500"
                         onClick={() => setSelectedJobForPipelines(job)}
                       >
                         {job.pipelines.length}
@@ -670,9 +727,14 @@ export default function Jobs() {
                       <span className="text-xs text-muted-foreground">0</span>
                     )}
                   </div>
-                  <div className="text-muted-foreground text-sm">{job.lastRun}</div>
+                  <div className="text-muted-foreground text-sm">{formatDate(job.lastRun)}</div>
                   <div>
-                    <Badge className={`${getStatusColor(job.status)} text-white text-xs px-2 py-1`}>{job.status}</Badge>
+                    <Badge className={cn(
+                      "text-xs px-2 py-1",
+                      getStatusColor(job.status)
+                    )}>
+                      {job.status}
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -710,15 +772,15 @@ export default function Jobs() {
                     >
                       <Link className="w-4 h-4" />
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleViewJob(job)}
                       className="w-8 h-8 rounded-full p-0"
                       title="View Details"
                     >
-                      <FileText className="w-4" />
-                    </Button>
+                      <FileText className="w-4 h-4" />
+                    </Button> */}
                   </div>
                 </div>
               ))}

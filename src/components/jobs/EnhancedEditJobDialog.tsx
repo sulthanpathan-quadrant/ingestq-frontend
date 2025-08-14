@@ -58,13 +58,16 @@ interface EnhancedEditJobDialogProps {
   onSave: (jobId: string, stages: JobStage[]) => void;
 }
 
-// Updated available steps to match your stage types
+// Updated available steps to match stage types from Jobs.tsx
 const availableSteps = [
-  { id: 'source', name: 'Source Stage', icon: Database, color: '#3b82f6', description: 'Configure data source connections and extraction settings' },
-  { id: 'destination', name: 'Destination Stage', icon: Target, color: '#10b981', description: 'Configure target systems and data loading settings' },
-  { id: 'business_logic', name: 'Business Logic Stage', icon: Settings, color: '#8b5cf6', description: 'Define data transformations and business rules' },
-  { id: 'dq_rules', name: 'Data Quality Rules Stage', icon: Filter, color: '#f59e0b', description: 'Configure data validation and quality checks' },
-  { id: 'schedule', name: 'Schedule Stage', icon: Calendar, color: '#ef4444', description: 'Configure time-based or event-based triggers' },
+  { id: 'extraction', name: 'Extract Data', icon: Database, color: '#3b82f6', description: 'Extract data from source systems' },
+  { id: 'transformation', name: 'Transform Data', icon: Settings, color: '#8b5cf6', description: 'Apply business rules and transformations' },
+  { id: 'loading', name: 'Load Data', icon: Target, color: '#10b981', description: 'Load processed data into target system' },
+  { id: 'validation', name: 'Data Validation', icon: Filter, color: '#f59e0b', description: 'Validate data quality and consistency' },
+  { id: 'processing', name: 'Data Processing', icon: Settings, color: '#ef4444', description: 'Process data for analytics or reporting' },
+  { id: 'collection', name: 'Data Collection', icon: Database, color: '#6b7280', description: 'Collect data from various sources' },
+  { id: 'connection', name: 'Source Connection', icon: Database, color: '#3b82f6', description: 'Connect to source database' },
+  { id: 'transfer', name: 'Data Transfer', icon: Target, color: '#10b981', description: 'Transfer data to target system' },
 ];
 
 function DraggableStepItem({ step }: { step: typeof availableSteps[0] }) {
@@ -254,6 +257,11 @@ export default function EnhancedEditJobDialog({
     }
   }, [job]);
 
+  // Filter available steps to exclude those already used in stages
+  const filteredAvailableSteps = availableSteps.filter(
+    step => !stages.some(stage => stage.type === step.id)
+  );
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -344,17 +352,18 @@ export default function EnhancedEditJobDialog({
           <div className="w-80 flex flex-col">
             <h3 className="font-semibold mb-4">Available Steps</h3>
             <div className="flex-1 overflow-y-auto space-y-2">
-              {availableSteps.map((step) => (
-                <div key={step.id} onClick={() => addStepToEnd(step)}>
-                  <DraggableStepItem step={step} />
+              {filteredAvailableSteps.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">All available steps have been added</p>
                 </div>
-              ))}
+              ) : (
+                filteredAvailableSteps.map((step) => (
+                  <div key={step.id} onClick={() => addStepToEnd(step)}>
+                    <DraggableStepItem step={step} />
+                  </div>
+                ))
+              )}
             </div>
-            {/* <div className="mt-4 p-3 bg-muted/30 rounded-lg text-center">
-              <p className="text-xs text-muted-foreground">
-                💡 Drag steps to specific positions or click to add to end
-              </p>
-            </div> */}
           </div>
 
           {/* Right Panel - Job Stage Pipeline */}

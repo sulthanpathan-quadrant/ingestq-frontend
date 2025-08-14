@@ -44,7 +44,7 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -67,10 +67,29 @@ export default function Login() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
+            <div className="text-right">
+              <Button 
+                variant="link" 
+                className="p-0 text-primary font-medium" 
+                onClick={() => navigate("/forgot-password")}
+              >
+                Forgot Password?
+              </Button>
+            </div>
+            <Button onClick={handleLogin} className="w-full">
               Login
             </Button>
-          </form>
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">Don't have an account? </span>
+              <Button 
+                variant="link" 
+                className="p-0 text-primary font-medium" 
+                onClick={() => navigate("/register")}
+              >
+                Register
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
