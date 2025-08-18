@@ -1,7 +1,6 @@
-// Modified AuthenticatedLayout.tsx
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
-import { Database, Brain, Settings, BarChart3, FileText, UserSearch, Code, Workflow, User, LogOut, Upload as UploadIcon, FileCheck, PanelLeft, X, Plus, Minus, Cloud, HardDrive, Server, Folder, FolderOpen, Globe, Check, Briefcase, Zap, Package, Factory } from "lucide-react";
+import { Database, Brain, Settings, BarChart3, PanelLeft, FileText, UserSearch, Code, Workflow, User, LogOut, Upload as UploadIcon, FileCheck, X, Plus, Minus, Cloud, HardDrive, Server, Folder, FolderOpen, Globe, Check, Briefcase, Zap, Package, Factory } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +58,7 @@ export function AuthenticatedLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -192,22 +192,34 @@ export function AuthenticatedLayout() {
 
       <div className="flex">
         {/* Sidebar */}
-        <div className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border transform transition-all duration-300 ease-in-out pt-16 ${
-          sidebarOpen ? 'w-64 translate-x-0' : 'w-16 translate-x-0'
-        }`}>
+        <div 
+          className={`fixed inset-y-0 left-0 z-40 bg-card border-r border-border transform transition-all duration-300 ease-in-out pt-16 ${
+            sidebarOpen ? 'w-64 translate-x-0' : 'w-16 translate-x-0'
+          }`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           <div className="h-full flex flex-col">
             {sidebarOpen ? (
               <>
-                <div className="sticky top-16 bg-card z-10 border-b border-border flex items-center p-4 space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="bg-card border border-border shadow-sm h-10 w-10 flex-shrink-0"
-                  >
-                    <PanelLeft className="w-5 h-5" />
-                  </Button>
-                  <h2 className="text-lg font-semibold text-foreground flex items-center flex-1">
+                <div className="sticky top-16 bg-card z-10 border-b border-border p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                      className="bg-card border border-border shadow-sm h-10 w-10 flex-shrink-0"
+                    >
+                      <PanelLeft className="w-5 h-5" />
+                    </Button>
+                    <NavLink to="/dashboard" className="flex items-center">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg relative">
+                        <Brain className="w-5 h-5 text-primary-foreground absolute top-1 left-1" />
+                        <Database className="w-5 h-5 text-primary-foreground absolute bottom-1 right-1" />
+                      </div>
+                    </NavLink>
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground flex items-center">
                     <Briefcase className="w-5 h-5 mr-2" />
                     Job Categories
                   </h2>
@@ -270,14 +282,16 @@ export function AuthenticatedLayout() {
               </>
             ) : (
               <div className="flex flex-col items-center pt-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="bg-card border border-border shadow-sm h-10 w-10"
-                >
-                  <PanelLeft className="w-5 h-5" />
-                </Button>
+                <div className="relative flex items-center justify-center h-10 w-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="bg-card border border-border shadow-sm h-10 w-10"
+                  >
+                    <PanelLeft className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
