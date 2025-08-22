@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Search, Play, Eye, Edit, Trash, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PipelineBuilderDialog from "@/components/jobs/PipelineBuilderDialog";
-import PipelineDetailsDialog from "@/components/jobs/PipelineDetailsDialog";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/components/types/jobs";
 import type { Pipeline, Edge } from "@/components/types/pipeline";

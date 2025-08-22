@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Database, Bot, Upload, BarChart3, Cog, Eye, Zap, Shield, FileText, Users, CheckCircle, TrendingUp, LogIn, UserPlus, ArrowRight, Play, Star, Brain } from "lucide-react";
@@ -13,11 +14,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 function LandingContent() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
   const [loginData, setLoginData] = useState({ email: "demo@ingestiq.com", password: "demo123" });
   const [registerData, setRegisterData] = useState({ name: "", email: "", password: "" });
-  const [verificationCode, setVerificationCode] = useState("");
-  const [sentVerificationCode, setSentVerificationCode] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -34,62 +32,24 @@ function LandingContent() {
       });
       
       window.location.href = "/dashboard/jobs";
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Please enter valid credentials",
-        variant: "destructive",
-      });
     }
   };
 
-  const sendVerificationEmail = async (email: string) => {
-    // Simulate sending verification email with a 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setSentVerificationCode(code);
+ const handleRegister = async () => {
+  if (registerData.name && registerData.email && registerData.password) {
+    localStorage.setItem("authenticated", "true");
+    localStorage.setItem("user", JSON.stringify({ name: registerData.name, email: registerData.email }));
+    
+    setShowRegister(false);
+    
     toast({
-      title: "Verification Email Sent",
-      description: `A verification code has been sent to ${email}.`,
+      title: "Registration successful",
+      description: "Welcome to IngestIQ!",
     });
-    return code;
-  };
-
-  const handleRegister = async () => {
-    if (registerData.name && registerData.email && registerData.password) {
-      // Simulate API call to send verification email
-      await sendVerificationEmail(registerData.email);
-      setShowRegister(false);
-      setShowVerifyEmail(true);
-    } else {
-      toast({
-        title: "Registration Failed",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleVerifyEmail = async () => {
-    if (verificationCode === sentVerificationCode) {
-      localStorage.setItem("authenticated", "true");
-      localStorage.setItem("user", JSON.stringify({ name: registerData.name, email: registerData.email }));
-      
-      setShowVerifyEmail(false);
-      
-      toast({
-        title: "Email Verified",
-        description: "Welcome to IngestIQ!",
-      });
-      
-      window.location.href = "/upload";
-    } else {
-      toast({
-        title: "Verification Failed",
-        description: "Invalid verification code",
-        variant: "destructive",
-      });
-    }
-  };
+    
+    navigate('/dashboard/upload');  
+  }
+};
 
   const smoothScrollTo = (elementId: string) => {
     const element = document.getElementById(elementId);
@@ -218,7 +178,7 @@ function LandingContent() {
               <Card className="hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 border-warning/20 bg-gradient-to-br from-warning/5 to-warning/10">
                 <CardContent className="p-4 text-center">
                   <div className="w-10 h-10 bg-warning/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <BarChart3 className="w-5 h-房地产 text-warning" />
+                    <BarChart3 className="w-5 h-5 text-warning" />
                   </div>
                   <h3 className="font-semibold text-foreground mb-1 text-sm">Real-time Analytics</h3>
                   <p className="text-xs text-muted-foreground">Live insights</p>
@@ -701,17 +661,7 @@ function LandingContent() {
               </p>
             </div>
             
-            <div className="flex justify-between items-center">
-              <Button 
-                variant="link" 
-                className="p-0 text-primary font-medium" 
-                onClick={() => {
-                  setShowLogin(false);
-                  navigate("/forgot-password");
-                }}
-              >
-                Forgot Password?
-              </Button>
+            <div className="flex justify-center">
               <Button onClick={handleLogin} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Login
               </Button>
@@ -797,50 +747,6 @@ function LandingContent() {
                 }}
               >
                 Login
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Email Verification Dialog */}
-      <Dialog open={showVerifyEmail} onOpenChange={setShowVerifyEmail}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Verify Your Email</DialogTitle>
-            <DialogDescription>
-              Enter the verification code sent to {registerData.email}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="verification-code" className="text-sm font-medium">Verification Code</Label>
-                <Input
-                  id="verification-code"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-center">
-              <Button onClick={handleVerifyEmail} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                Verify Email
-              </Button>
-            </div>
-            
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">Didn't receive a code? </span>
-              <Button 
-                variant="link" 
-                className="p-0 text-primary font-medium" 
-                onClick={() => sendVerificationEmail(registerData.email)}
-              >
-                Resend Code
               </Button>
             </div>
           </div>
