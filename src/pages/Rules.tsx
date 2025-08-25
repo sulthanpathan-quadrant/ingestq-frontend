@@ -220,7 +220,7 @@ export default function Rules() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mt-14 mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Data Quality Rules</h1>
@@ -467,7 +467,7 @@ export default function Rules() {
 
       {/* Analyze Failures Dialog */}
       <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto !rounded-xl sm:!rounded-xl">
           <DialogHeader>
             <DialogTitle>Failure Analysis</DialogTitle>
             <DialogDescription>
