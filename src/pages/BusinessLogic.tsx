@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { SkipForward } from "lucide-react";
 
 interface BusinessRule {
   id: string;
@@ -165,8 +166,12 @@ export default function BusinessLogic() {
     });
   };
 
-    const handlebacktoNER = () => {
+  const handleBackToNER = () => {
     navigate('/dashboard/ner');
+  };
+
+  const handleSkipToETL = () => {
+    navigate('/dashboard/etl');
   };
 
   const handleContinueToETL = () => {
@@ -326,34 +331,32 @@ export default function BusinessLogic() {
         ))}
       </div>
 
-      {/* Continue to ETL Button */}
-      {/* <div className="flex justify-end">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between items-center">
         <Button 
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          onClick={handleContinueToETL}
+          variant="outline" 
+          onClick={handleBackToNER}
         >
-          <ArrowRight className="w-4 h-4 mr-2" />
-          Continue to ETL
+          <ArrowRight className="w-4 h-4 rotate-180 mr-2" />
+          Back
         </Button>
-      </div> */}
-
-      <div className="flex justify-end space-x-2">
-  <Button 
-    variant="outline" 
-    onClick={handlebacktoNER}
-  >
-    <ArrowRight className="w-4 h-4 rotate-180 mr-2" />
-    Back
-  </Button>
-  <Button 
-    className="bg-blue-600 hover:bg-blue-700 text-white"
-    onClick={handleContinueToETL}
-  >
-    <ArrowRight className="w-4 h-4 mr-2" />
-    Continue to ETL
-  </Button>
-</div>
-
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleSkipToETL}
+          >
+            <SkipForward className="w-4 h-4" />
+            Skip
+          </Button>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={handleContinueToETL}
+          >
+            <ArrowRight className="w-4 h-4 mr-2" />
+            Continue to ETL
+          </Button>
+        </div>
+      </div>
 
       {/* Add Rule Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

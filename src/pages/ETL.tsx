@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface DataSource {
   id: string;
@@ -52,6 +52,7 @@ export default function ETL() {
   const [dataSources] = useState<DataSource[]>(mockDataSources);
   const [transformations, setTransformations] = useState<Transformation[]>(mockTransformations);
   const [isJobRunning, setIsJobRunning] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   const handleScheduleJob = () => {
     navigate('/dashboard/schedule-job');
@@ -145,29 +146,31 @@ export default function ETL() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mt-14 mx-auto p-6">
-        {/* Header with Navigation */}
+        {/* Header with Actions */}
         <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            onClick={handleGoBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-
-          <div className="text-center">
+          <div className="text-start">
             <h1 className="text-3xl font-bold text-foreground">ETL Pipeline</h1>
             <p className="text-muted-foreground">Design, manage, and monitor your data pipelines</p>
           </div>
-
-          <Button
-            onClick={handleGoNext}
-            className="flex items-center gap-2"
-          >
-            Next
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleScheduleJob} variant="secondary">
+              <Calendar className="w-4 h-4 mr-2" />
+              Schedule Job
+            </Button>
+            <Button onClick={handleViewReports} variant="outline">
+              <FileText className="w-4 h-4 mr-2" />
+              View Reports
+            </Button>
+            <Button 
+              onClick={handleRunJob} 
+              disabled={isJobRunning}
+              className={cn(isJobRunning && "opacity-75")}
+            >
+              <Play className="w-4 h-4 mr-2" />
+              {isJobRunning ? "Running..." : "Run Job"}
+            </Button>
+            
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -247,25 +250,65 @@ export default function ETL() {
           </Card>
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end space-x-4 mt-6">
-          <Button onClick={handleScheduleJob} variant="secondary">
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule Job
-          </Button>
-          <Button 
-            onClick={handleRunJob} 
-            disabled={isJobRunning}
-            className={cn(isJobRunning && "opacity-75")}
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
+          
+          <Button
+            variant="outline"
+            onClick={handleGoBack}
+            className="flex items-center gap-2"
           >
-            <Play className="w-4 h-4 mr-2" />
-            {isJobRunning ? "Running..." : "Run Job"}
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </Button>
-          <Button onClick={handleViewReports} variant="outline">
-            <FileText className="w-4 h-4 mr-2" />
-            View Reports
+          
+          <Button
+            onClick={handleGoNext}
+            className="flex items-center gap-2"
+          >
+            Next
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* Schedule Job Dialog */}
+        <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Schedule ETL Job</DialogTitle>
+              <DialogDescription>
+                Configure the schedule for your ETL pipeline
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Data source to be fetched from backend
+                </p>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowScheduleDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    setShowScheduleDialog(false);
+                    toast({
+                      title: "Job Scheduled",
+                      description: "ETL job has been scheduled successfully",
+                    });
+                  }}
+                >
+                  Schedule
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

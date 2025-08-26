@@ -172,28 +172,28 @@ export default function NamedEntityResolution() {
       <div className="container mt-14 mx-auto p-6">
         {/* Header with Navigation */}
         <div className="flex items-center justify-between mb-6">
-          <Button
+          {/* <Button
             variant="outline"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Go Back
-          </Button>
+          </Button> */}
 
-          <div className="text-center">
+          <div className="text-start">
             <h1 className="text-3xl font-bold text-foreground">Named Entity Resolution</h1>
             <p className="text-muted-foreground">Review and resolve entity matches in your data</p>
           </div>
 
-          <Button
+          {/* <Button
             variant="outline"
             onClick={handleSkip}
             className="flex items-center gap-2"
           >
             <SkipForward className="w-4 h-4" />
             Skip
-          </Button>
+          </Button> */}
         </div>
 
         {/* Statistics */}

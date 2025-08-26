@@ -14,7 +14,8 @@ import {
   Loader2,
   Folder,
   File,
-  X
+  X,
+  ChevronRight
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,37 +23,60 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 
+// Mock data for S3
+const mockBuckets = ["s3-bucket-1", "s3-bucket-2"];
+const mockFolders: Record<string, string[]> = {
+  "s3-bucket-1": ["logs/", "exports/", "raw-data/", "logs/sublog/"],
+  "s3-bucket-2": ["images/", "backups/"]
+};
+const mockFiles: Record<string, string[]> = {
+  "logs/": ["2023-01-01.log", "2023-01-02.log"],
+  "logs/sublog/": ["sub-2023.log"],
+  "exports/": ["sales.csv", "users.csv", "customer_data_v2.xlsx"],
+  "raw-data/": ["dump1.json", "dump12.json", "dump11.json", "dump23.json", "dump33.json", "dump22.json", "dump13.json", "dump42.json"],
+  "images/": ["logo.png", "banner.jpg"],
+  "backups/": ["backup1.zip", "backup2.zip"]
+};
+
+// Mock data for Azure Blob
+const mockAzureContainers = ["container1", "container2"];
+const mockAzureFolders: Record<string, string[]> = {
+  "container1": ["data/", "reports/", "data/subdata/"],
+  "container2": ["archives/", "media/"]
+};
+const mockAzureBlobs: Record<string, string[]> = {
+  "data/": ["data1.csv", "data2.csv", "customer_data_v2.xlsx"],
+  "data/subdata/": ["subdata1.json"],
+  "reports/": ["report1.pdf", "report2.csv"],
+  "archives/": ["archive1.zip"],
+  "media/": ["image1.png", "video1.mp4"]
+};
+
+// Mock tables for database
+const mockTables = ["customers", "orders", "products", "employees", "departments"];
+
 interface SourceConfig {
-  accessKey?: string;
-  secretKey?: string;
   connectionString?: string;
   databaseName?: string;
   username?: string;
   password?: string;
   port?: string;
-  databasePath?: string;
+  bucket?: string;
+  currentPath?: string;
 }
 
 interface DestinationConfig {
   type: string;
-  accessKey?: string;
-  secretKey?: string;
   connectionString?: string;
   databaseName?: string;
   username?: string;
   password?: string;
   port?: string;
-  databasePath?: string;
-  filename?: string;
-}
-
-interface S3Object {
-  key: string;
-  type: 'folder' | 'file';
-  size?: number;
-  lastModified?: string;
+  bucket?: string;
+  currentPath?: string;
 }
 
 export default function Upload() {
@@ -65,13 +89,16 @@ export default function Upload() {
   const [isDestConnected, setIsDestConnected] = useState<boolean>(false);
   const [isDestConnecting, setIsDestConnecting] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [showS3Browser, setShowS3Browser] = useState<boolean>(false);
-  const [showAzureBrowser, setShowAzureBrowser] = useState<boolean>(false);
-  const [s3Objects, setS3Objects] = useState<S3Object[]>([]);
-  const [azureObjects, setAzureObjects] = useState<S3Object[]>([]);
-  const [currentPath, setCurrentPath] = useState<string>('');
   const [selectedSourcePath, setSelectedSourcePath] = useState<string>('');
   const [selectedDestPath, setSelectedDestPath] = useState<string>('');
+  const [showSourceBrowser, setShowSourceBrowser] = useState<boolean>(false);
+  const [showDestBrowser, setShowDestBrowser] = useState<boolean>(false);
+  const [showSourceDBBrowser, setShowSourceDBBrowser] = useState<boolean>(false);
+  const [showDestDBBrowser, setShowDestDBBrowser] = useState<boolean>(false);
+  const [sourceSelectedItem, setSourceSelectedItem] = useState<string | null>(null);
+  const [destSelectedItem, setDestSelectedItem] = useState<string | null>(null);
+  const [sourceDBSelectedTables, setSourceDBSelectedTables] = useState<string[]>([]);
+  const [selectAllTables, setSelectAllTables] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -89,52 +116,42 @@ export default function Upload() {
     { value: 'database', label: 'Database', icon: Server }
   ];
 
-  
   useEffect(() => {
-    if (['s3', 'azure-blob'].includes(selectedDestination) && selectedSourcePath && !destinationConfig.filename) {
+    if (['s3', 'azure-blob'].includes(selectedDestination) && selectedSourcePath && destinationConfig.currentPath !== undefined) {
       const sourceFilename = selectedSourcePath.split('/').pop() || 'output.csv';
-      if (selectedDestination === 's3' && destinationConfig.accessKey && destinationConfig.secretKey) {
-        setDestinationConfig(prev => ({ ...prev, filename: `${sourceFilename}` }));
+      if (selectedDestination === 's3' && destinationConfig.bucket) {
+        setSelectedDestPath(`s3://${destinationConfig.bucket}/${destSelectedItem || destinationConfig.currentPath || ''}${sourceFilename}`);
       } else if (selectedDestination === 'azure-blob' && destinationConfig.connectionString) {
-        setDestinationConfig(prev => ({ ...prev, filename: `${sourceFilename}` }));
+        setSelectedDestPath(`azure://${destinationConfig.connectionString}/${destSelectedItem || destinationConfig.currentPath || ''}${sourceFilename}`);
       }
     }
-  }, [selectedDestination, selectedSourcePath, destinationConfig]);
+  }, [selectedDestination, selectedSourcePath, destinationConfig.bucket, destinationConfig.currentPath, destinationConfig.connectionString, destSelectedItem]);
+
+  useEffect(() => {
+    // Update selectAllTables based on sourceDBSelectedTables
+    if (sourceDBSelectedTables.length === mockTables.length) {
+      setSelectAllTables(true);
+    } else {
+      setSelectAllTables(false);
+    }
+  }, [sourceDBSelectedTables]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setUploadedFiles(acceptedFiles);
-    setSelectedSourcePath(acceptedFiles.map(file => file.name).join(', '));
+    const fileNames = acceptedFiles.map(file => file.name).join(', ');
+    setSelectedSourcePath(fileNames);
     setIsSourceConnected(true);
-    // Suggest destination filename based on first uploaded file
-    if (acceptedFiles.length > 0 && ['s3', 'azure-blob'].includes(selectedDestination)) {
-      setDestinationConfig(prev => ({
-        ...prev,
-        filename: prev.filename || `output_${acceptedFiles[0].name}`
-      }));
-    }
+    localStorage.setItem("selectedFile", fileNames.split(', ')[0]);
     toast({
       title: "Files Uploaded",
       description: `${acceptedFiles.length} file(s) uploaded successfully`,
     });
-  }, [toast, selectedDestination]);
+  }, [toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-  const mockS3Objects: S3Object[] = [
-    { key: 'data-lake/', type: 'folder' },
-    { key: 'raw-data/', type: 'folder' },
-    { key: 'processed/', type: 'folder' },
-    { key: 'customers.csv', type: 'file', size: 1024000, lastModified: '2024-01-15' },
-    { key: 'orders.json', type: 'file', size: 2048000, lastModified: '2024-01-14' },
-  ];
-
   const scrollToSummary = () => {
     setTimeout(() => {
-      console.log('Scrolling to summary:', {
-        summaryRef: summaryRef.current,
-        isSourceConnected,
-        isDestConnected
-      });
       if (summaryRef.current) {
         summaryRef.current.scrollIntoView({ behavior: 'smooth' });
       } else {
@@ -143,88 +160,405 @@ export default function Upload() {
     }, 100);
   };
 
+  const getS3Items = (bucket: string, path: string) => {
+    const allFolders = mockFolders[bucket] || [];
+    const subfolders = new Set<string>();
+    allFolders.forEach(f => {
+      if (f.startsWith(path)) {
+        const relative = f.slice(path.length);
+        if (relative) {
+          const sub = relative.split('/')[0] + '/';
+          if (sub !== '/') subfolders.add(sub);
+        }
+      }
+    });
+    const folders = Array.from(subfolders);
+    const files = mockFiles[path] || [];
+    return { folders, files };
+  };
+
+  const getAzureItems = (container: string, path: string) => {
+    const allFolders = mockAzureFolders[container] || [];
+    const subfolders = new Set<string>();
+    allFolders.forEach(f => {
+      if (f.startsWith(path)) {
+        const relative = f.slice(path.length);
+        if (relative) {
+          const sub = relative.split('/')[0] + '/';
+          if (sub !== '/') subfolders.add(sub);
+        }
+      }
+    });
+    const folders = Array.from(subfolders);
+    const blobs = mockAzureBlobs[path] || [];
+    return { folders, files: blobs };
+  };
+
+  const handleS3Navigation = (item: string, isFolder: boolean) => {
+    if (item === '..') {
+      const parts = (sourceConfig.currentPath || '').split('/').filter(p => p);
+      if (parts.length === 0) {
+        // At bucket level, go back to bucket list
+        setSourceConfig(prev => ({ ...prev, bucket: undefined, currentPath: '' }));
+      } else {
+        // Inside a folder, go up one level
+        parts.pop();
+        const newPath = parts.join('/') + (parts.length > 0 ? '/' : '');
+        setSourceConfig(prev => ({ ...prev, currentPath: newPath }));
+      }
+      setSelectedSourcePath('');
+      setIsSourceConnected(false);
+    } else if (isFolder) {
+      const newPath = (sourceConfig.currentPath || '') + item;
+      setSourceConfig(prev => ({ ...prev, currentPath: newPath }));
+      setSelectedSourcePath('');
+      setIsSourceConnected(false);
+    } else {
+      const fullPath = `s3://${sourceConfig.bucket}/${sourceConfig.currentPath || ''}${item}`;
+      setSelectedSourcePath(fullPath);
+      setIsSourceConnected(true);
+      localStorage.setItem("selectedFile", item);
+      setShowSourceBrowser(false);
+      toast({
+        title: "File Selected",
+        description: `Selected: ${fullPath}`,
+      });
+    }
+    setSourceSelectedItem(null);
+  };
+
+  const handleAzureNavigation = (item: string, isFolder: boolean) => {
+    if (item === '..') {
+      const parts = (sourceConfig.currentPath || '').split('/').filter(p => p);
+      if (parts.length === 0) {
+        // At container level, go back to container list
+        setSourceConfig(prev => ({ ...prev, connectionString: undefined, currentPath: '' }));
+      } else {
+        // Inside a folder, go up one level
+        parts.pop();
+        const newPath = parts.join('/') + (parts.length > 0 ? '/' : '');
+        setSourceConfig(prev => ({ ...prev, currentPath: newPath }));
+      }
+      setSelectedSourcePath('');
+      setIsSourceConnected(false);
+    } else if (isFolder) {
+      const newPath = (sourceConfig.currentPath || '') + item;
+      setSourceConfig(prev => ({ ...prev, currentPath: newPath }));
+      setSelectedSourcePath('');
+      setIsSourceConnected(false);
+    } else {
+      const fullPath = `azure://${sourceConfig.connectionString}/${sourceConfig.currentPath || ''}${item}`;
+      setSelectedSourcePath(fullPath);
+      setIsSourceConnected(true);
+      localStorage.setItem("selectedFile", item);
+      setShowSourceBrowser(false);
+      toast({
+        title: "File Selected",
+        description: `Selected: ${fullPath}`,
+      });
+    }
+    setSourceSelectedItem(null);
+  };
+
+  const handleDestS3Navigation = (item: string, isFolder: boolean) => {
+    if (item === '..') {
+      const parts = (destinationConfig.currentPath || '').split('/').filter(p => p);
+      if (parts.length === 0) {
+        // At bucket level, go back to bucket list
+        setDestinationConfig(prev => ({ ...prev, bucket: undefined, currentPath: '' }));
+      } else {
+        // Inside a folder, go up one level
+        parts.pop();
+        const newPath = parts.join('/') + (parts.length > 0 ? '/' : '');
+        setDestinationConfig(prev => ({ ...prev, currentPath: newPath }));
+      }
+      setSelectedDestPath('');
+      setIsDestConnected(false);
+    } else if (isFolder) {
+      const newPath = (destinationConfig.currentPath || '') + item;
+      setDestinationConfig(prev => ({ ...prev, currentPath: newPath }));
+      setSelectedDestPath('');
+      setIsDestConnected(false);
+    }
+    setDestSelectedItem(null);
+  };
+
+  const handleDestAzureNavigation = (item: string, isFolder: boolean) => {
+    if (item === '..') {
+      const parts = (destinationConfig.currentPath || '').split('/').filter(p => p);
+      if (parts.length === 0) {
+        // At container level, go back to container list
+        setDestinationConfig(prev => ({ ...prev, connectionString: undefined, currentPath: '' }));
+      } else {
+        // Inside a folder, go up one level
+        parts.pop();
+        const newPath = parts.join('/') + (parts.length > 0 ? '/' : '');
+        setDestinationConfig(prev => ({ ...prev, currentPath: newPath }));
+      }
+      setSelectedDestPath('');
+      setIsDestConnected(false);
+    } else if (isFolder) {
+      const newPath = (destinationConfig.currentPath || '') + item;
+      setDestinationConfig(prev => ({ ...prev, currentPath: newPath }));
+      setSelectedDestPath('');
+      setIsDestConnected(false);
+    }
+    setDestSelectedItem(null);
+  };
+
+  const handleSelectSourceBucket = (bucket: string) => {
+    setSourceConfig(prev => ({ ...prev, bucket, currentPath: '' }));
+    setSelectedSourcePath('');
+    setIsSourceConnected(false);
+    setSourceSelectedItem(null);
+  };
+
+  const handleSelectSourceContainer = (container: string) => {
+    setSourceConfig(prev => ({ ...prev, connectionString: container, currentPath: '' }));
+    setSelectedSourcePath('');
+    setIsSourceConnected(false);
+    setSourceSelectedItem(null);
+  };
+
+  const handleSelectDestBucket = (bucket: string) => {
+    setDestinationConfig(prev => ({ ...prev, bucket, currentPath: '' }));
+    setSelectedDestPath('');
+    setIsDestConnected(false);
+    setDestSelectedItem(null);
+  };
+
+  const handleSelectDestContainer = (container: string) => {
+    setDestinationConfig(prev => ({ ...prev, connectionString: container, currentPath: '' }));
+    setSelectedDestPath('');
+    setIsDestConnected(false);
+    setDestSelectedItem(null);
+  };
+
+  const handleSelectDestinationFolder = () => {
+    if (!selectedSourcePath) {
+      toast({
+        title: "Error",
+        description: "Please select a source file first",
+        variant: "destructive"
+      });
+      return;
+    }
+    const sourceFilename = selectedSourcePath.split('/').pop() || 'output.csv';
+    const destPath = selectedDestination === 's3' 
+      ? `s3://${destinationConfig.bucket}/${destSelectedItem || destinationConfig.currentPath || ''}${sourceFilename}`
+      : `azure://${destinationConfig.connectionString}/${destSelectedItem || destinationConfig.currentPath || ''}${sourceFilename}`;
+    setSelectedDestPath(destPath);
+    setIsDestConnected(true);
+    localStorage.setItem("selectedDestFolder", destSelectedItem || destinationConfig.currentPath || '');
+    setShowDestBrowser(false);
+    toast({
+      title: "Destination Selected",
+      description: `Selected: ${destSelectedItem || destinationConfig.currentPath || ''}${sourceFilename}`,
+    });
+    scrollToSummary();
+  };
+
+  const handleSelectDestBucketOrContainer = () => {
+    if (!selectedSourcePath) {
+      toast({
+        title: "Error",
+        description: "Please select a source file first",
+        variant: "destructive"
+      });
+      return;
+    }
+    const sourceFilename = selectedSourcePath.split('/').pop() || 'output.csv';
+    const destPath = selectedDestination === 's3' 
+      ? `s3://${destSelectedItem}/${sourceFilename}`
+      : `azure://${destSelectedItem}/${sourceFilename}`;
+    setSelectedDestPath(destPath);
+    setIsDestConnected(true);
+    localStorage.setItem("selectedDestFolder", '');
+    setShowDestBrowser(false);
+    toast({
+      title: "Destination Selected",
+      description: `Selected: ${destSelectedItem}`,
+    });
+    scrollToSummary();
+  };
+
+  const handleSelectSourceTables = () => {
+    if (sourceDBSelectedTables.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one table",
+        variant: "destructive"
+      });
+      return;
+    }
+    const fullPath = sourceDBSelectedTables.map(table => `${sourceConfig.databaseName}.${table}`).join(', ');
+    setSelectedSourcePath(fullPath);
+    setIsSourceConnected(true);
+    setShowSourceDBBrowser(false);
+    localStorage.setItem("selectedFile", sourceDBSelectedTables.join(','));
+    toast({
+      title: "Tables Selected",
+      description: `Selected: ${fullPath}`,
+    });
+    setSourceDBSelectedTables([]);
+    setSelectAllTables(false);
+  };
+
+  const handleSelectDestTable = (table: string) => {
+    setSelectedDestPath(`${destinationConfig.databaseName}.${table}`);
+    setIsDestConnected(true);
+    setShowDestDBBrowser(false);
+    localStorage.setItem("selectedDestFolder", table);
+    toast({
+      title: "Table Selected",
+      description: `Selected: ${table}`,
+    });
+    scrollToSummary();
+  };
+
+  const toggleSelectAllTables = () => {
+    if (selectAllTables) {
+      setSourceDBSelectedTables([]);
+    } else {
+      setSourceDBSelectedTables(mockTables);
+    }
+    setSelectAllTables(!selectAllTables);
+  };
+
+  const Breadcrumbs = ({ type }: { type: 'source' | 'destination' }) => {
+    const config = type === 'source' ? sourceConfig : destinationConfig;
+    const path = config.currentPath || '';
+    const parts = path.split('/').filter(p => p);
+    const bucketOrContainer = type === 'source' ? (config.bucket || config.connectionString) : (config.bucket || config.connectionString);
+    
+    return (
+      <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground mb-2">
+        <span 
+          onClick={() => {
+            if (type === 'source') {
+              setSourceConfig(prev => ({ ...prev, bucket: undefined, connectionString: undefined, currentPath: '' }));
+              setSelectedSourcePath('');
+              setIsSourceConnected(false);
+            } else {
+              setDestinationConfig(prev => ({ ...prev, bucket: undefined, connectionString: undefined, currentPath: '' }));
+              setSelectedDestPath('');
+              setIsDestConnected(false);
+            }
+          }} 
+          className="cursor-pointer hover:underline flex items-center"
+        >
+          <Folder className="w-4 h-4 mr-1" /> Root
+        </span>
+        {bucketOrContainer && (
+          <>
+            <ChevronRight className="w-4 h-4" />
+            <span 
+              onClick={() => {
+                if (type === 'source') {
+                  setSourceConfig(prev => ({ ...prev, currentPath: '' }));
+                  setSelectedSourcePath('');
+                  setIsSourceConnected(false);
+                } else {
+                  setDestinationConfig(prev => ({ ...prev, currentPath: '' }));
+                  setSelectedDestPath('');
+                  setIsDestConnected(false);
+                }
+              }} 
+              className="cursor-pointer hover:underline"
+            >
+              {bucketOrContainer}
+            </span>
+          </>
+        )}
+        {parts.map((part, idx) => (
+          <React.Fragment key={idx}>
+            <ChevronRight className="w-4 h-4" />
+            <span 
+              onClick={() => {
+                const newPath = parts.slice(0, idx + 1).join('/') + '/';
+                if (type === 'source') {
+                  setSourceConfig(prev => ({ ...prev, currentPath: newPath }));
+                  setSelectedSourcePath('');
+                  setIsSourceConnected(false);
+                } else {
+                  setDestinationConfig(prev => ({ ...prev, currentPath: newPath }));
+                  setSelectedDestPath('');
+                  setIsDestConnected(false);
+                }
+              }} 
+              className="cursor-pointer hover:underline"
+            >
+              {part}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
   const handleConnect = async (type: 'source' | 'destination') => {
     if (type === 'source') {
-      if (!sourceConfig.accessKey && selectedSource === 's3') {
-        toast({ title: "Error", description: "AWS Access Key is required", variant: "destructive" });
-        return;
-      }
-      if (!sourceConfig.secretKey && selectedSource === 's3') {
-        toast({ title: "Error", description: "AWS Secret Key is required", variant: "destructive" });
-        return;
-      }
-      if (!sourceConfig.connectionString && selectedSource === 'azure-blob') {
-        toast({ title: "Error", description: "Connection String is required", variant: "destructive" });
-        return;
-      }
-      if (!sourceConfig.databaseName && selectedSource === 'database') {
-        toast({ title: "Error", description: "Database Name is required", variant: "destructive" });
-        return;
-      }
-      if (!sourceConfig.username && selectedSource === 'database') {
-        toast({ title: "Error", description: "Username is required", variant: "destructive" });
-        return;
-      }
-      setIsSourceConnecting(true);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      if (selectedSource === 's3') {
-        setS3Objects(mockS3Objects);
-        setShowS3Browser(true);
-      } else if (selectedSource === 'azure-blob') {
-        setAzureObjects(mockS3Objects);
-        setShowAzureBrowser(true);
+      if (selectedSource === 's3' || selectedSource === 'azure-blob') {
+        setIsSourceConnecting(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setShowSourceBrowser(true);
+        setIsSourceConnecting(false);
+        toast({
+          title: "Connection Initiated",
+          description: `Please select a ${selectedSource === 's3' ? 'bucket' : 'container'}`,
+        });
       } else if (selectedSource === 'database') {
-        setSelectedSourcePath(sourceConfig.databasePath || '');
-        setIsSourceConnected(true);
-      }
-      setIsSourceConnecting(false);
-      toast({
-        title: "Connection Successful",
-        description: `Connected to ${selectedSource} successfully`,
-      });
-    } else {
-      if (!destinationConfig.accessKey && selectedDestination === 's3') {
-        toast({ title: "Error", description: "AWS Access Key is required", variant: "destructive" });
-        return;
-      }
-      if (!destinationConfig.secretKey && selectedDestination === 's3') {
-        toast({ title: "Error", description: "AWS Secret Key is required", variant: "destructive" });
-        return;
-      }
-      if (!destinationConfig.connectionString && selectedDestination === 'azure-blob') {
-        toast({ title: "Error", description: "Connection String is required", variant: "destructive" });
-        return;
-      }
-      if (!destinationConfig.databaseName && selectedDestination === 'database') {
-        toast({ title: "Error", description: "Database Name is required", variant: "destructive" });
-        return;
-      }
-      if (!destinationConfig.username && selectedDestination === 'database') {
-        toast({ title: "Error", description: "Username is required", variant: "destructive" });
-        return;
-      }
-      if (!destinationConfig.filename && ['s3', 'azure-blob'].includes(selectedDestination)) {
-        toast({ title: "Error", description: "Destination filename is required", variant: "destructive" });
-        return;
-      }
-      setIsDestConnecting(true);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      if (selectedDestination === 's3') {
-        setS3Objects(mockS3Objects);
-        setShowS3Browser(true);
-      } else if (selectedDestination === 'azure-blob') {
-        setAzureObjects(mockS3Objects);
-        setShowAzureBrowser(true);
-      } else if (selectedDestination === 'database') {
-        setSelectedDestPath(destinationConfig.databasePath || '');
-        setIsDestConnected(true);
+        if (!sourceConfig.databaseName) {
+          toast({ title: "Error", description: "Database Name is required", variant: "destructive" });
+          return;
+        }
+        if (!sourceConfig.username) {
+          toast({ title: "Error", description: "Username is required", variant: "destructive" });
+          return;
+        }
+        setIsSourceConnecting(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setShowSourceDBBrowser(true);
+        setIsSourceConnecting(false);
         toast({
           title: "Connection Successful",
-          description: `Connected to ${selectedDestination} successfully`,
+          description: `Connected to database successfully`,
+        });
+      }
+    } else {
+      if (selectedDestination === 's3' || selectedDestination === 'azure-blob') {
+        if (!selectedSourcePath) {
+          toast({ title: "Error", description: "Please select a source first", variant: "destructive" });
+          return;
+        }
+        setIsDestConnecting(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setShowDestBrowser(true);
+        setIsDestConnecting(false);
+        toast({
+          title: "Connection Initiated",
+          description: `Please select a ${selectedDestination === 's3' ? 'bucket' : 'container'}`,
+        });
+      } else if (selectedDestination === 'database') {
+        if (!destinationConfig.databaseName) {
+          toast({ title: "Error", description: "Database Name is required", variant: "destructive" });
+          return;
+        }
+        if (!destinationConfig.username) {
+          toast({ title: "Error", description: "Username is required", variant: "destructive" });
+          return;
+        }
+        setIsDestConnecting(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsDestConnected(true);
+        setSelectedDestPath(destinationConfig.databaseName!);
+        setIsDestConnecting(false);
+        toast({
+          title: "Connection Successful",
+          description: `Connected to database successfully`,
         });
         scrollToSummary();
       }
-      setIsDestConnecting(false);
     }
   };
 
@@ -232,87 +566,29 @@ export default function Upload() {
     setSelectedSourcePath('');
     setUploadedFiles([]);
     setIsSourceConnected(false);
-    setSourceConfig({});
+    setSourceConfig({ bucket: sourceConfig.bucket, currentPath: sourceConfig.currentPath });
+    localStorage.removeItem("selectedFile");
   };
 
   const handleRemoveDestPath = () => {
     setSelectedDestPath('');
     setIsDestConnected(false);
-    setDestinationConfig({ type: selectedDestination });
+    setDestinationConfig({ type: selectedDestination, bucket: destinationConfig.bucket, currentPath: destinationConfig.currentPath });
+    localStorage.removeItem("selectedDestFolder");
   };
 
   const renderSourceFields = () => {
     switch (selectedSource) {
       case 's3':
-        return (
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="source-access-key">AWS Access Key</Label>
-              <Input
-                id="source-access-key"
-                placeholder="AKIA..."
-                value={sourceConfig.accessKey || ''}
-                onChange={(e) => setSourceConfig(prev => ({ ...prev, accessKey: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="source-secret-key">AWS Secret Key</Label>
-              <Input
-                id="source-secret-key"
-                type="password"
-                placeholder="••••••••"
-                value={sourceConfig.secretKey || ''}
-                onChange={(e) => setSourceConfig(prev => ({ ...prev, secretKey: e.target.value }))}
-              />
-            </div>
-            {selectedSourcePath && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <File className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">File selected:</span>
-                    <span className="text-sm text-green-700">{selectedSourcePath}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveSourcePath}
-                    className="h-6 w-6 p-0 text-green-600 hover:text-green-800 hover:bg-green-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            <Button 
-              onClick={() => handleConnect('source')} 
-              disabled={isSourceConnecting || isSourceConnected || !sourceConfig.accessKey || !sourceConfig.secretKey}
-              className="w-fit flex items-center gap-2"
-            >
-              {isSourceConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : isSourceConnected ? <CheckCircle className="w-4 h-4" /> : null}
-              {isSourceConnecting ? 'Connecting...' : isSourceConnected ? 'Connected' : 'Connect'}
-            </Button>
-          </div>
-        );
-      
       case 'azure-blob':
         return (
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="source-connection-string">Connection String</Label>
-              <Input
-                id="source-connection-string"
-                placeholder="DefaultEndpointsProtocol=https;AccountName=..."
-                value={sourceConfig.connectionString || ''}
-                onChange={(e) => setSourceConfig(prev => ({ ...prev, connectionString: e.target.value }))}
-              />
-            </div>
+          <div className="space-y-6">
             {selectedSourcePath && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <File className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">File selected:</span>
+                    <span className="text-sm font-medium text-green-800">Selected:</span>
                     <span className="text-sm text-green-700">{selectedSourcePath}</span>
                   </div>
                   <Button
@@ -328,7 +604,7 @@ export default function Upload() {
             )}
             <Button 
               onClick={() => handleConnect('source')} 
-              disabled={isSourceConnecting || isSourceConnected || !sourceConfig.connectionString}
+              disabled={isSourceConnecting}
               className="w-fit flex items-center gap-2"
             >
               {isSourceConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : isSourceConnected ? <CheckCircle className="w-4 h-4" /> : null}
@@ -377,21 +653,12 @@ export default function Upload() {
                 onChange={(e) => setSourceConfig(prev => ({ ...prev, port: e.target.value }))}
               />
             </div>
-            <div className="col-span-full">
-              <Label htmlFor="source-database-path">Database Table/Path</Label>
-              <Input
-                id="source-database-path"
-                placeholder="schema.table or /path/to/database"
-                value={sourceConfig.databasePath || ''}
-                onChange={(e) => setSourceConfig(prev => ({ ...prev, databasePath: e.target.value }))}
-              />
-            </div>
             {selectedSourcePath && (
               <div className="col-span-full bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Database className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Table/Path selected:</span>
+                    <span className="text-sm font-medium text-green-800">Tables selected:</span>
                     <span className="text-sm text-green-700">{selectedSourcePath}</span>
                   </div>
                   <Button
@@ -465,87 +732,9 @@ export default function Upload() {
   const renderDestinationFields = () => {
     switch (selectedDestination) {
       case 's3':
-        return (
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="dest-access-key">AWS Access Key</Label>
-              <Input
-                id="dest-access-key"
-                placeholder="AKIA..."
-                value={destinationConfig.accessKey || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, accessKey: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dest-secret-key">AWS Secret Key</Label>
-              <Input
-                id="dest-secret-key"
-                type="password"
-                placeholder="••••••••"
-                value={destinationConfig.secretKey || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, secretKey: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dest-filename">Destination Filename</Label>
-              <Input
-                id="dest-filename"
-                placeholder="e.g., output.csv"
-                value={destinationConfig.filename || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, filename: e.target.value }))}
-              />
-            </div>
-            {selectedDestPath && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <File className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Destination selected:</span>
-                    <span className="text-sm text-green-700">{selectedDestPath}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveDestPath}
-                    className="h-6 w-6 p-0 text-green-600 hover:text-green-800 hover:bg-green-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            <Button 
-              onClick={() => handleConnect('destination')} 
-              disabled={isDestConnecting || isDestConnected || !destinationConfig.accessKey || !destinationConfig.secretKey || !destinationConfig.filename}
-              className="w-fit flex items-center gap-2"
-            >
-              {isDestConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : isDestConnected ? <CheckCircle className="w-4 h-4" /> : null}
-              {isDestConnecting ? 'Connecting...' : isDestConnected ? 'Connected' : 'Connect'}
-            </Button>
-          </div>
-        );
-      
       case 'azure-blob':
         return (
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="dest-connection-string">Connection String</Label>
-              <Input
-                id="dest-connection-string"
-                placeholder="DefaultEndpointsProtocol=https;AccountName=..."
-                value={destinationConfig.connectionString || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, connectionString: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dest-filename">Destination Filename</Label>
-              <Input
-                id="dest-filename"
-                placeholder="e.g., output.csv"
-                value={destinationConfig.filename || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, filename: e.target.value }))}
-              />
-            </div>
+          <div className="space-y-6">
             {selectedDestPath && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
@@ -567,7 +756,7 @@ export default function Upload() {
             )}
             <Button 
               onClick={() => handleConnect('destination')} 
-              disabled={isDestConnecting || isDestConnected || !destinationConfig.connectionString || !destinationConfig.filename}
+              disabled={isDestConnecting || !selectedSourcePath}
               className="w-fit flex items-center gap-2"
             >
               {isDestConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : isDestConnected ? <CheckCircle className="w-4 h-4" /> : null}
@@ -616,21 +805,12 @@ export default function Upload() {
                 onChange={(e) => setDestinationConfig(prev => ({ ...prev, port: e.target.value }))}
               />
             </div>
-            <div className="col-span-full">
-              <Label htmlFor="dest-database-path">Database Table/Path</Label>
-              <Input
-                id="dest-database-path"
-                placeholder="schema.table or /path/to/database"
-                value={destinationConfig.databasePath || ''}
-                onChange={(e) => setDestinationConfig(prev => ({ ...prev, databasePath: e.target.value }))}
-              />
-            </div>
             {selectedDestPath && (
               <div className="col-span-full bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Database className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Table/Path selected:</span>
+                    <span className="text-sm font-medium text-green-800">Database selected:</span>
                     <span className="text-sm text-green-700">{selectedDestPath}</span>
                   </div>
                   <Button
@@ -704,120 +884,275 @@ export default function Upload() {
           <div className="w-[120px]" /> {/* Spacer for centering */}
         </div>
 
-        {/* S3 Browser Dialog */}
-        <Dialog open={showS3Browser} onOpenChange={setShowS3Browser}>
+        {/* Source Browser Dialog for S3/Azure */}
+        <Dialog open={showSourceBrowser} onOpenChange={(open) => {
+          setShowSourceBrowser(open);
+          if (!open) {
+            setSourceConfig(prev => ({ ...prev, bucket: undefined, connectionString: undefined, currentPath: '' }));
+            setSelectedSourcePath('');
+            setIsSourceConnected(false);
+            localStorage.removeItem("selectedFile");
+            setSourceSelectedItem(null);
+          }
+        }}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Browse S3 Buckets</DialogTitle>
+              <DialogTitle>
+                {selectedSource === 's3' ? 'Browse S3 Buckets' : 'Browse Azure Containers'}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Path: /{currentPath}
-              </div>
+              <Breadcrumbs type="source" />
               <div className="border rounded-lg max-h-96 overflow-y-auto">
-                {s3Objects.map((obj, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0"
-                    onClick={() => {
-                      if (selectedSource === 's3' && obj.type === 'file') {
-                        setSelectedSourcePath(`s3://${obj.key}`);
-                        setIsSourceConnected(true);
-                        // Suggest destination filename based on source file, if not already set
-                        if (['s3', 'azure-blob'].includes(selectedDestination) && !destinationConfig.filename) {
-                          setDestinationConfig(prev => ({ ...prev, filename: `output_${obj.key.split('/').pop()}` }));
-                        }
-                        setShowS3Browser(false);
-                        toast({
-                          title: "File Selected",
-                          description: `Selected: ${obj.key}`,
-                        });
-                      } else if (selectedDestination === 's3' && obj.type === 'folder') {
-                        const filename = destinationConfig.filename || 'output.csv';
-                        setSelectedDestPath(`s3://${obj.key}${filename}`);
-                        setIsDestConnected(true);
-                        setShowS3Browser(false);
-                        toast({
-                          title: "Folder Selected",
-                          description: `Selected: ${obj.key}${filename} for destination`,
-                        });
-                        scrollToSummary();
-                      }
-                    }}
-                  >
-                    {obj.type === 'folder' ? (
-                      <Folder className="w-4 h-4 text-blue-500" />
-                    ) : (
-                      <File className="w-4 h-4 text-gray-500" />
-                    )}
-                    <div className="flex-1">
-                      <div className="font-medium">{obj.key}</div>
-                      {obj.type === 'file' && (
-                        <div className="text-xs text-muted-foreground">
-                          {(obj.size! / 1024).toFixed(1)} KB • {obj.lastModified}
+                {(!sourceConfig.bucket && selectedSource === 's3') || (!sourceConfig.connectionString && selectedSource === 'azure-blob') ? (
+                  <>
+                    {selectedSource === 's3' ? (
+                      mockBuckets.map((bucket, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${sourceSelectedItem === bucket ? 'bg-primary/20 border-primary/50' : ''}`}
+                          onDoubleClick={() => handleSelectSourceBucket(bucket)}
+                        >
+                          <Folder className="w-4 h-4 text-blue-500" />
+                          <div className="flex-1 font-medium">{bucket}</div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                      ))
+                    ) : (
+                      mockAzureContainers.map((container, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${sourceSelectedItem === container ? 'bg-primary/20 border-primary/50' : ''}`}
+                          onDoubleClick={() => handleSelectSourceContainer(container)}
+                        >
+                          <Folder className="w-4 h-4 text-blue-500" />
+                          <div className="flex-1 font-medium">{container}</div>
+                        </div>
+                      ))
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(sourceConfig.bucket || sourceConfig.connectionString) && (
+                      <div
+                        className="flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0"
+                        onDoubleClick={() => (selectedSource === 's3' ? handleS3Navigation('..', true) : handleAzureNavigation('..', true))}
+                      >
+                        <Folder className="w-4 h-4 text-blue-500" />
+                        <div className="flex-1 font-medium">..</div>
+                      </div>
+                    )}
+                    {(selectedSource === 's3' ? getS3Items(sourceConfig.bucket!, sourceConfig.currentPath || '') : getAzureItems(sourceConfig.connectionString!, sourceConfig.currentPath || '')).folders.map((folder, index) => (
+                      <div
+                        key={folder}
+                        className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${sourceSelectedItem === folder ? 'bg-primary/20 border-primary/50' : ''}`}
+                        onDoubleClick={() => (selectedSource === 's3' ? handleS3Navigation(folder, true) : handleAzureNavigation(folder, true))}
+                      >
+                        <Folder className="w-4 h-4 text-blue-500" />
+                        <div className="flex-1 font-medium">{folder}</div>
+                      </div>
+                    ))}
+                    {(selectedSource === 's3' ? getS3Items(sourceConfig.bucket!, sourceConfig.currentPath || '') : getAzureItems(sourceConfig.connectionString!, sourceConfig.currentPath || '')).files.map((file, index) => (
+                      <div
+                        key={file}
+                        className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b ${index === (selectedSource === 's3' ? getS3Items(sourceConfig.bucket!, sourceConfig.currentPath || '').files.length : getAzureItems(sourceConfig.connectionString!, sourceConfig.currentPath || '').files.length) - 1 ? 'last:border-b-0' : ''} ${sourceSelectedItem === file ? 'bg-primary/20 border-primary/50' : ''}`}
+                        onClick={() => setSourceSelectedItem(file)}
+                      >
+                        <File className="w-4 h-4 text-gray-500" />
+                        <div className="flex-1 font-medium">{file}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
+              {(sourceConfig.bucket || sourceConfig.connectionString) && sourceSelectedItem && !sourceSelectedItem.endsWith('/') && (
+                <Button 
+                  onClick={() => {
+                    const isFolder = sourceSelectedItem.endsWith('/');
+                    if (selectedSource === 's3') handleS3Navigation(sourceSelectedItem, isFolder);
+                    else handleAzureNavigation(sourceSelectedItem, isFolder);
+                  }}
+                  className="w-fit flex items-center gap-2"
+                >
+                  Select {sourceSelectedItem}
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Azure Browser Dialog */}
-        <Dialog open={showAzureBrowser} onOpenChange={setShowAzureBrowser}>
+        {/* Destination Browser Dialog for S3/Azure */}
+        <Dialog open={showDestBrowser} onOpenChange={(open) => {
+          setShowDestBrowser(open);
+          if (!open) {
+            setDestinationConfig(prev => ({ ...prev, bucket: undefined, connectionString: undefined, currentPath: '' }));
+            setSelectedDestPath('');
+            setIsDestConnected(false);
+            localStorage.removeItem("selectedDestFolder");
+            setDestSelectedItem(null);
+          }
+        }}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Browse Azure Containers</DialogTitle>
+              <DialogTitle>
+                {selectedDestination === 's3' ? 'Browse S3 Buckets' : 'Browse Azure Containers'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Breadcrumbs type="destination" />
+              <div className="border rounded-lg max-h-96 overflow-y-auto">
+                {(!destinationConfig.bucket && selectedDestination === 's3') || (!destinationConfig.connectionString && selectedDestination === 'azure-blob') ? (
+                  <>
+                    {selectedDestination === 's3' ? (
+                      mockBuckets.map((bucket, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${destSelectedItem === bucket ? 'bg-primary/20 border-primary/50' : ''}`}
+                          onClick={() => setDestSelectedItem(bucket)}
+                          onDoubleClick={() => handleSelectDestBucket(bucket)}
+                        >
+                          <Folder className="w-4 h-4 text-blue-500" />
+                          <div className="flex-1 font-medium">{bucket}</div>
+                        </div>
+                      ))
+                    ) : (
+                      mockAzureContainers.map((container, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${destSelectedItem === container ? 'bg-primary/20 border-primary/50' : ''}`}
+                          onClick={() => setDestSelectedItem(container)}
+                          onDoubleClick={() => handleSelectDestContainer(container)}
+                        >
+                          <Folder className="w-4 h-4 text-blue-500" />
+                          <div className="flex-1 font-medium">{container}</div>
+                        </div>
+                      ))
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(destinationConfig.bucket || destinationConfig.connectionString) && (
+                      <div
+                        className="flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0"
+                        onDoubleClick={() => (selectedDestination === 's3' ? handleDestS3Navigation('..', true) : handleDestAzureNavigation('..', true))}
+                      >
+                        <Folder className="w-4 h-4 text-blue-500" />
+                        <div className="flex-1 font-medium">..</div>
+                      </div>
+                    )}
+                    {(selectedDestination === 's3' ? getS3Items(destinationConfig.bucket!, destinationConfig.currentPath || '') : getAzureItems(destinationConfig.connectionString!, destinationConfig.currentPath || '')).folders.map((folder, index) => (
+                      <div
+                        key={folder}
+                        className={`flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0 ${destSelectedItem === folder ? 'bg-primary/20 border-primary/50' : ''}`}
+                        onClick={() => setDestSelectedItem(folder)}
+                        onDoubleClick={() => (selectedDestination === 's3' ? handleDestS3Navigation(folder, true) : handleDestAzureNavigation(folder, true))}
+                      >
+                        <Folder className="w-4 h-4 text-blue-500" />
+                        <div className="flex-1 font-medium">{folder}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+              {((!destinationConfig.bucket && selectedDestination === 's3') || (!destinationConfig.connectionString && selectedDestination === 'azure-blob')) && destSelectedItem && (
+                <Button 
+                  onClick={handleSelectDestBucketOrContainer}
+                  className="w-fit flex items-center gap-2"
+                >
+                  Select This {selectedDestination === 's3' ? 'Bucket' : 'Container'}
+                </Button>
+              )}
+              {(destinationConfig.bucket || destinationConfig.connectionString) && destSelectedItem && destSelectedItem !== '..' && (
+                <Button 
+                  onClick={handleSelectDestinationFolder}
+                  disabled={!selectedSourcePath}
+                  className="w-fit flex items-center gap-2"
+                >
+                  Select This Folder
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Source Database Browser Dialog */}
+        <Dialog open={showSourceDBBrowser} onOpenChange={(open) => {
+          setShowSourceDBBrowser(open);
+          if (!open) {
+            setSourceDBSelectedTables([]);
+            setSelectAllTables(false);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Browse Database Tables</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground">
-                Container: {currentPath || 'root'}
+                Database: {sourceConfig.databaseName}
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="select-all-tables"
+                  checked={selectAllTables}
+                  onCheckedChange={toggleSelectAllTables}
+                />
+                <Label htmlFor="select-all-tables">Select All Tables</Label>
               </div>
               <div className="border rounded-lg max-h-96 overflow-y-auto">
-                {azureObjects.map((obj, index) => (
+                {mockTables.map((table, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0"
-                    onClick={() => {
-                      if (selectedSource === 'azure-blob' && obj.type === 'file') {
-                        setSelectedSourcePath(`azure://${obj.key}`);
-                        setIsSourceConnected(true);
-                        // Suggest destination filename based on source file, if not already set
-                        if (['s3', 'azure-blob'].includes(selectedDestination) && !destinationConfig.filename) {
-                          setDestinationConfig(prev => ({ ...prev, filename: `output_${obj.key.split('/').pop()}` }));
-                        }
-                        setShowAzureBrowser(false);
-                        toast({
-                          title: "File Selected",
-                          description: `Selected: ${obj.key}`,
-                        });
-                      } else if (selectedDestination === 'azure-blob' && obj.type === 'folder') {
-                        const filename = destinationConfig.filename || 'output.csv';
-                        setSelectedDestPath(`azure://${obj.key}${filename}`);
-                        setIsDestConnected(true);
-                        setShowAzureBrowser(false);
-                        toast({
-                          title: "Folder Selected",
-                          description: `Selected: ${obj.key}${filename} for destination`,
-                        });
-                        scrollToSummary();
-                      }
-                    }}
+                    className="flex items-center gap-3 p-3 border-b last:border-b-0"
                   >
-                    {obj.type === 'folder' ? (
-                      <Folder className="w-4 h-4 text-blue-500" />
-                    ) : (
-                      <File className="w-4 h-4 text-gray-500" />
-                    )}
+                    <Checkbox
+                      id={`table-${table}`}
+                      checked={sourceDBSelectedTables.includes(table)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSourceDBSelectedTables(prev => [...prev, table]);
+                        } else {
+                          setSourceDBSelectedTables(prev => prev.filter(t => t !== table));
+                        }
+                      }}
+                    />
+                    <Database className="w-4 h-4 text-gray-500" />
                     <div className="flex-1">
-                      <div className="font-medium">{obj.key}</div>
-                      {obj.type === 'file' && (
-                        <div className="text-xs text-muted-foreground">
-                          {(obj.size! / 1024).toFixed(1)} KB • {obj.lastModified}
-                        </div>
-                      )}
+                      <div className="font-medium">{table}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={handleSelectSourceTables}
+                disabled={sourceDBSelectedTables.length === 0}
+                className="w-fit flex items-center gap-2"
+              >
+                Select {sourceDBSelectedTables.length} Table{sourceDBSelectedTables.length !== 1 ? 's' : ''}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Destination Database Browser Dialog */}
+        <Dialog open={showDestDBBrowser} onOpenChange={setShowDestDBBrowser}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Browse Database Tables</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Database: {destinationConfig.databaseName}
+              </div>
+              <div className="border rounded-lg max-h-96 overflow-y-auto">
+                {mockTables.map((table, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer border-b last:border-b-0"
+                    onClick={() => handleSelectDestTable(table)}
+                  >
+                    <Database className="w-4 h-4 text-gray-500" />
+                    <div className="flex-1">
+                      <div className="font-medium">{table}</div>
                     </div>
                   </div>
                 ))}

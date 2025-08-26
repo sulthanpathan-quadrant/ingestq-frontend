@@ -31,25 +31,21 @@ export default function ScheduleJob() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto p-6">
+      <div className="container mt-14 mx-auto p-6">
         <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={handleBack} className="mr-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+          
           <div>
             <h1 className="text-3xl font-bold text-foreground">Schedule Job</h1>
             <p className="text-muted-foreground">Configure when and how your job should run</p>
           </div>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
-          <Card>
+        <div className="max-w-5xl mx-auto space-y-6">
+          <Card className="">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
+              {/* <CardTitle className="flex items-center gap-2">
                 Schedule Configuration
-              </CardTitle>
+              </CardTitle> */}
               <CardDescription>
                 Choose how you want to trigger your job execution
               </CardDescription>
@@ -110,22 +106,23 @@ export default function ScheduleJob() {
                   <div className="space-y-2">
                     <Label htmlFor="datasource">Data Source</Label>
                     <Select value={datasource} onValueChange={setDatasource}>
-                      <SelectTrigger>
+                      <p>Select a source folder to be triggered</p>
+                      {/* <SelectTrigger>
                         <SelectValue placeholder="Select data source to monitor" />
-                      </SelectTrigger>
-                      <SelectContent>
+                      </SelectTrigger> */}
+                      {/* <SelectContent>
                         <SelectItem value="s3-bucket-1">S3 Bucket - Production Data</SelectItem>
                         <SelectItem value="s3-bucket-2">S3 Bucket - Staging Data</SelectItem>
                         <SelectItem value="azure-blob-1">Azure Blob - Customer Files</SelectItem>
                         <SelectItem value="database-1">Database - Transaction Logs</SelectItem>
-                      </SelectContent>
+                      </SelectContent> */}
                     </Select>
                   </div>
-                  <div className="p-4 bg-muted rounded-lg">
+                  {/* <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       The job will automatically trigger when new files are uploaded to the selected data source.
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               )}
 
@@ -143,7 +140,13 @@ export default function ScheduleJob() {
               </div>
             </CardContent>
           </Card>
+          
         </div>
+        <Button variant="outline" onClick={handleBack} className="mt-6 mr-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          
       </div>
     </div>
   );

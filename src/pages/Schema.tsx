@@ -6,7 +6,150 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+
+// Mock sheet data for the Excel file
+const mockSheets = ["Sheet1", "Sheet2", "Sheet3"];
+
+// Mock schema data per sheet
+const schemaData: Record<string, { currentSchema: SchemaColumn[], previousSchema: SchemaColumn[] }> = {
+  "Sheet1": {
+    currentSchema: [
+      { name: 'AccountID', type: 'INTEGER', nullable: false, status: 'existing', samples: ['1001', '1002', '1003'] },
+      { name: 'CustomerName', type: 'VARCHAR(255)', nullable: false, status: 'existing', samples: ['John Doe', 'Jane Smith', 'Bob Johnson'] },
+      { name: 'AccountType', type: 'VARCHAR(50)', nullable: false, status: 'existing', samples: ['Savings', 'Checking', 'Business'] },
+      { name: 'Balance', type: 'DECIMAL(10,2)', nullable: false, status: 'existing', samples: ['1250.50', '3400.00', '850.25'] },
+      { name: 'Status', type: 'VARCHAR(20)', nullable: false, status: 'existing', samples: ['Active', 'Inactive', 'Pending'] },
+      { name: 'Email', type: 'VARCHAR(255)', nullable: true, status: 'new', samples: ['john@email.com', 'jane@email.com', 'bob@email.com'] },
+      { name: 'Phone', type: 'VARCHAR(20)', nullable: true, status: 'new', samples: ['+1234567890', '+0987654321', '+1122334455'] },
+    ],
+    previousSchema: [
+      { name: 'AccountID', type: 'INTEGER', nullable: false, status: 'existing' },
+      { name: 'CustomerName', type: 'VARCHAR(255)', nullable: false, status: 'existing' },
+      { name: 'AccountType', type: 'VARCHAR(50)', nullable: false, status: 'existing' },
+      { name: 'Balance', type: 'DECIMAL(10,2)', nullable: false, status: 'existing' },
+      { name: 'Status', type: 'VARCHAR(20)', nullable: false, status: 'existing' },
+      { name: 'CreatedDate', type: 'DATE', nullable: false, status: 'deleted' },
+    ],
+  },
+  "Sheet2": {
+    currentSchema: [
+      { name: 'OrderID', type: 'INTEGER', nullable: false, status: 'existing', samples: ['5001', '5002', '5003'] },
+      { name: 'CustomerID', type: 'INTEGER', nullable: false, status: 'existing', samples: ['1001', '1002', '1003'] },
+      { name: 'OrderDate', type: 'DATE', nullable: false, status: 'existing', samples: ['2023-01-01', '2023-01-02', '2023-01-03'] },
+      { name: 'TotalAmount', type: 'DECIMAL(10,2)', nullable: false, status: 'existing', samples: ['99.99', '149.50', '75.00'] },
+    ],
+    previousSchema: [
+      { name: 'OrderID', type: 'INTEGER', nullable: false, status: 'existing' },
+      { name: 'CustomerID', type: 'INTEGER', nullable: false, status: 'existing' },
+      { name: 'OrderDate', type: 'DATE', nullable: false, status: 'existing' },
+      { name: 'Amount', type: 'DECIMAL(10,2)', nullable: false, status: 'deleted' },
+    ],
+  },
+  "Sheet3": {
+    currentSchema: [
+      { name: 'ProductID', type: 'INTEGER', nullable: false, status: 'existing', samples: ['2001', '2002', '2003'] },
+      { name: 'ProductName', type: 'VARCHAR(100)', nullable: false, status: 'existing', samples: ['Laptop', 'Phone', 'Tablet'] },
+      { name: 'Price', type: 'DECIMAL(10,2)', nullable: false, status: 'new', samples: ['999.99', '499.99', '299.99'] },
+    ],
+    previousSchema: [
+      { name: 'ProductID', type: 'INTEGER', nullable: false, status: 'existing' },
+      { name: 'ProductName', type: 'VARCHAR(100)', nullable: false, status: 'existing' },
+    ],
+  },
+};
+
+// Mock data for preview per sheet
+const dummyData: Record<string, any[]> = {
+  "Sheet1": [
+    { AccountID: 1001, CustomerName: 'John Doe', AccountType: 'Savings', Balance: 1250.50, Status: 'Active', Email: 'john@email.com', Phone: '+1234567890' },
+    { AccountID: 1002, CustomerName: 'Jane Smith', AccountType: 'Checking', Balance: 3400.00, Status: 'Active', Email: 'jane@email.com', Phone: '+0987654321' },
+    { AccountID: 1003, CustomerName: 'Bob Johnson', AccountType: 'Business', Balance: 850.25, Status: 'Pending', Email: 'bob@email.com', Phone: '+1122334455' },
+    { AccountID: 1004, CustomerName: 'Alice Brown', AccountType: 'Savings', Balance: 2100.75, Status: 'Active', Email: 'alice@email.com', Phone: '+1555666777' },
+    { AccountID: 1005, CustomerName: 'Charlie Wilson', AccountType: 'Checking', Balance: 750.00, Status: 'Inactive', Email: 'charlie@email.com', Phone: '+1999888777' },
+  ],
+  "Sheet2": [
+    { OrderID: 5001, CustomerID: 1001, OrderDate: '2023-01-01', TotalAmount: 99.99 },
+    { OrderID: 5002, CustomerID: 1002, OrderDate: '2023-01-02', TotalAmount: 149.50 },
+    { OrderID: 5003, CustomerID: 1003, OrderDate: '2023-01-03', TotalAmount: 75.00 },
+    { OrderID: 5004, CustomerID: 1004, OrderDate: '2023-01-04', TotalAmount: 200.00 },
+    { OrderID: 5005, CustomerID: 1005, OrderDate: '2023-01-05', TotalAmount: 50.00 },
+  ],
+  "Sheet3": [
+    { ProductID: 2001, ProductName: 'Laptop', Price: 999.99 },
+    { ProductID: 2002, ProductName: 'Phone', Price: 499.99 },
+    { ProductID: 2003, ProductName: 'Tablet', Price: 299.99 },
+    { ProductID: 2004, ProductName: 'Headphones', Price: 89.99 },
+    { ProductID: 2005, ProductName: 'Monitor', Price: 199.99 },
+  ],
+};
+
+// Mock relationship data per sheet
+const relationshipData: Record<string, { tables: any[], connections: any[] }> = {
+  "Sheet1": {
+    tables: [
+      {
+        name: 'customers.csv',
+        columns: [{ name: 'AccountID', isKey: true }],
+        position: { x: 100, y: 100 },
+      },
+      {
+        name: 'orders.csv',
+        columns: [
+          { name: 'CustomerID', isKey: true },
+          { name: 'ProductID', isKey: true },
+        ],
+        position: { x: 500, y: 100 },
+      },
+    ],
+    connections: [
+      {
+        id: 'rel1',
+        from: { table: 'customers.csv', column: 'AccountID' },
+        to: { table: 'orders.csv', column: 'CustomerID' },
+        type: '1:M',
+        description: 'One customer can have multiple orders',
+      },
+    ],
+  },
+  "Sheet2": {
+    tables: [
+      {
+        name: 'orders.csv',
+        columns: [
+          { name: 'CustomerID', isKey: true },
+          { name: 'ProductID', isKey: true },
+        ],
+        position: { x: 100, y: 100 },
+      },
+      {
+        name: 'products.csv',
+        columns: [{ name: 'ProductID', isKey: true }],
+        position: { x: 500, y: 100 },
+      },
+    ],
+    connections: [
+      {
+        id: 'rel2',
+        from: { table: 'orders.csv', column: 'ProductID' },
+        to: { table: 'products.csv', column: 'ProductID' },
+        type: 'M:1',
+        description: 'Multiple orders can reference one product',
+      },
+    ],
+  },
+  "Sheet3": {
+    tables: [
+      {
+        name: 'products.csv',
+        columns: [{ name: 'ProductID', isKey: true }],
+        position: { x: 100, y: 100 },
+      },
+    ],
+    connections: [],
+  },
+};
 
 interface SchemaColumn {
   name: string;
@@ -16,82 +159,21 @@ interface SchemaColumn {
   samples?: string[];
 }
 
-const currentSchema: SchemaColumn[] = [
-  { name: 'AccountID', type: 'INTEGER', nullable: false, status: 'existing', samples: ['1001', '1002', '1003'] },
-  { name: 'CustomerName', type: 'VARCHAR(255)', nullable: false, status: 'existing', samples: ['John Doe', 'Jane Smith', 'Bob Johnson'] },
-  { name: 'AccountType', type: 'VARCHAR(50)', nullable: false, status: 'existing', samples: ['Savings', 'Checking', 'Business'] },
-  { name: 'Balance', type: 'DECIMAL(10,2)', nullable: false, status: 'existing', samples: ['1250.50', '3400.00', '850.25'] },
-  { name: 'Status', type: 'VARCHAR(20)', nullable: false, status: 'existing', samples: ['Active', 'Inactive', 'Pending'] },
-  { name: 'Email', type: 'VARCHAR(255)', nullable: true, status: 'new', samples: ['john@email.com', 'jane@email.com', 'bob@email.com'] },
-  { name: 'Phone', type: 'VARCHAR(20)', nullable: true, status: 'new', samples: ['+1234567890', '+0987654321', '+1122334455'] },
-];
-
-const previousSchema: SchemaColumn[] = [
-  { name: 'AccountID', type: 'INTEGER', nullable: false, status: 'existing' },
-  { name: 'CustomerName', type: 'VARCHAR(255)', nullable: false, status: 'existing' },
-  { name: 'AccountType', type: 'VARCHAR(50)', nullable: false, status: 'existing' },
-  { name: 'Balance', type: 'DECIMAL(10,2)', nullable: false, status: 'existing' },
-  { name: 'Status', type: 'VARCHAR(20)', nullable: false, status: 'existing' },
-  { name: 'CreatedDate', type: 'DATE', nullable: false, status: 'deleted' },
-];
-
-// Dummy data for preview
-const dummyData = [
-  { AccountID: 1001, CustomerName: 'John Doe', AccountType: 'Savings', Balance: 1250.50, Status: 'Active', Email: 'john@email.com', Phone: '+1234567890' },
-  { AccountID: 1002, CustomerName: 'Jane Smith', AccountType: 'Checking', Balance: 3400.00, Status: 'Active', Email: 'jane@email.com', Phone: '+0987654321' },
-  { AccountID: 1003, CustomerName: 'Bob Johnson', AccountType: 'Business', Balance: 850.25, Status: 'Pending', Email: 'bob@email.com', Phone: '+1122334455' },
-  { AccountID: 1004, CustomerName: 'Alice Brown', AccountType: 'Savings', Balance: 2100.75, Status: 'Active', Email: 'alice@email.com', Phone: '+1555666777' },
-  { AccountID: 1005, CustomerName: 'Charlie Wilson', AccountType: 'Checking', Balance: 750.00, Status: 'Inactive', Email: 'charlie@email.com', Phone: '+1999888777' },
-];
-
-// Simplified relationship data
-const relationshipTables = [
-  {
-    name: 'customers.csv',
-    columns: [{ name: 'customer_id', isKey: true }],
-    position: { x: 100, y: 100 }
-  },
-  {
-    name: 'orders.csv',
-    columns: [
-      { name: 'customer_id', isKey: true },
-      { name: 'product_id', isKey: true }
-    ],
-    position: { x: 500, y: 100 }
-  },
-  {
-    name: 'products.csv',
-    columns: [{ name: 'product_id', isKey: true }],
-    position: { x: 500, y: 300 }
-  }
-];
-
-const relationshipConnections = [
-  {
-    id: 'rel1',
-    from: { table: 'customers.csv', column: 'customer_id' },
-    to: { table: 'orders.csv', column: 'customer_id' },
-    type: '1:M',
-    description: 'One customer can have multiple orders'
-  },
-  {
-    id: 'rel2',
-    from: { table: 'orders.csv', column: 'product_id' },
-    to: { table: 'products.csv', column: 'product_id' },
-    type: 'M:1',
-    description: 'Multiple orders can reference one product'
-  }
-];
-
 export default function Schema() {
   const [selectedFile] = useState(() => {
     return localStorage.getItem("selectedFile") || 'customer_data_v2.xlsx';
   });
+  const [selectedSheet, setSelectedSheet] = useState<string>(mockSheets[0]);
   const [showChanges, setShowChanges] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [showRelationships, setShowRelationships] = useState(false);
   const [hoveredRelationship, setHoveredRelationship] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const currentSchema = schemaData[selectedSheet]?.currentSchema || [];
+  const previousSchema = schemaData[selectedSheet]?.previousSchema || [];
+  const relationshipTables = relationshipData[selectedSheet]?.tables || [];
+  const relationshipConnections = relationshipData[selectedSheet]?.connections || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -136,9 +218,25 @@ export default function Schema() {
             Compare and analyze database schemas for data quality validation
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Database className="w-5 h-5 text-primary" />
-          <span className="font-medium">{selectedFile}</span>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Database className="w-5 h-5 text-primary" />
+            <span className="font-medium">{selectedFile}</span>
+          </div>
+          <div className="w-48">
+            <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select sheet" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockSheets.map((sheet) => (
+                  <SelectItem key={sheet} value={sheet}>
+                    {sheet}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -201,7 +299,6 @@ export default function Schema() {
       </div>
 
       <Tabs defaultValue="current" className="w-full">
-        
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="current">Current Schema</TabsTrigger>
           <TabsTrigger value="previous">Previous Schema</TabsTrigger>
@@ -211,9 +308,9 @@ export default function Schema() {
         <TabsContent value="current" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Current Schema Structure</CardTitle>
+              <CardTitle>Current Schema Structure ({selectedSheet})</CardTitle>
               <CardDescription>
-                Schema detected from the uploaded file with data samples
+                Schema detected from the selected sheet with data samples
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -269,7 +366,7 @@ export default function Schema() {
         <TabsContent value="previous" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Previous Schema Structure</CardTitle>
+              <CardTitle>Previous Schema Structure ({selectedSheet})</CardTitle>
               <CardDescription>
                 Last known schema structure for comparison
               </CardDescription>
@@ -314,7 +411,6 @@ export default function Schema() {
         
         <TabsContent value="changes" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* New Columns */}
             {newColumns.length > 0 && (
               <Card>
                 <CardHeader>
@@ -339,7 +435,6 @@ export default function Schema() {
               </Card>
             )}
             
-            {/* Deleted Columns */}
             {deletedColumns.length > 0 && (
               <Card>
                 <CardHeader>
@@ -394,9 +489,9 @@ export default function Schema() {
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Data Preview - {selectedFile}</DialogTitle>
+            <DialogTitle>Data Preview - {selectedFile} ({selectedSheet})</DialogTitle>
             <DialogDescription>
-              Sample data from the uploaded file (showing first 5 rows)
+              Sample data from the selected sheet (showing first 5 rows)
             </DialogDescription>
           </DialogHeader>
           
@@ -410,15 +505,11 @@ export default function Schema() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {dummyData.map((row, index) => (
+                {dummyData[selectedSheet].map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>{row.AccountID}</TableCell>
-                    <TableCell>{row.CustomerName}</TableCell>
-                    <TableCell>{row.AccountType}</TableCell>
-                    <TableCell>{row.Balance}</TableCell>
-                    <TableCell>{row.Status}</TableCell>
-                    <TableCell>{row.Email}</TableCell>
-                    <TableCell>{row.Phone}</TableCell>
+                    {currentSchema.map((column) => (
+                      <TableCell key={column.name}>{row[column.name]}</TableCell>
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -433,135 +524,127 @@ export default function Schema() {
         </DialogContent>
       </Dialog>
 
-      {/* Simplified Relationships Dialog */}
       <Dialog open={showRelationships} onOpenChange={setShowRelationships}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Table Relationships</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Table Relationships ({selectedSheet})</DialogTitle>
             <DialogDescription>
-              Customer to Orders relationship visualization
+              Relationships for data in {selectedSheet}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-8">
-            {/* Relationship Status Badge */}
             <div className="flex justify-center">
               <Badge className="bg-green-100 text-green-700 border-green-300">
                 <CheckCircle className="w-3 h-3 mr-1" />
-                1 Relationship Detected
+                {relationshipConnections.length} Relationship{relationshipConnections.length !== 1 ? 's' : ''} Detected
               </Badge>
             </div>
 
-            {/* Simple 2-Table Relationship Diagram */}
             <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-12 min-h-[300px] border border-slate-200">
-              {/* Left Table - customers.csv */}
-              <div className="absolute left-16 top-1/2 transform -translate-y-1/2">
-                <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-6 w-48">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-slate-800">customers.csv</h3>
-                    <Database className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-slate-700">customer_id</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">PK</Badge>
+              {relationshipTables.map((table, index) => (
+                <div
+                  key={table.name}
+                  className="absolute"
+                  style={{ left: table.position.x, top: table.position.y }}
+                >
+                  <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-6 w-48">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-slate-800">{table.name}</h3>
+                      <Database className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div className="space-y-2">
+                      {table.columns.map((col: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-slate-700">{col.name}</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">{col.isKey ? 'PK' : 'FK'}</Badge>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
+              ))}
 
-              {/* Right Table - orders.csv */}
-              <div className="absolute right-16 top-1/2 transform -translate-y-1/2">
-                <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-6 w-48">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-slate-800">orders.csv</h3>
-                    <Database className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-slate-700">customer_id</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">FK</Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Connection Line */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-                <line
-                  x1="304"
-                  y1="50%"
-                  x2="calc(100% - 304px)"
-                  y2="50%"
-                  stroke="#3b82f6"
-                  strokeWidth="3"
-                  className="transition-all duration-200"
-                  style={{ pointerEvents: 'all' }}
-                  onMouseEnter={() => setHoveredRelationship('customer-orders')}
-                  onMouseLeave={() => setHoveredRelationship(null)}
-                />
-                <circle cx="304" cy="50%" r="5" fill="#3b82f6" />
-                <circle cx="calc(100% - 304px)" cy="50%" r="5" fill="#3b82f6" />
-                
-                {/* Hover tooltip */}
-                {hoveredRelationship === 'customer-orders' && (
-                  <g>
-                    <rect
-                      x="50%"
-                      y="calc(50% - 15px)"
-                      width="50"
-                      height="30"
-                      rx="6"
-                      fill="#1f2937"
-                      transform="translate(-25, 0)"
-                      className="animate-fade-in"
-                    />
-                    <text
-                      x="50%"
-                      y="50%"
-                      textAnchor="middle"
-                      className="text-sm font-medium fill-white"
-                      dy="0.3em"
-                    >
-                      1:M
-                    </text>
-                  </g>
-                )}
+                {relationshipConnections.map((conn, index) => {
+                  const fromTable = relationshipTables.find(t => t.name === conn.from.table);
+                  const toTable = relationshipTables.find(t => t.name === conn.to.table);
+                  if (!fromTable || !toTable) return null;
+                  return (
+                    <g key={conn.id}>
+                      <line
+                        x1={fromTable.position.x + 200}
+                        y1={fromTable.position.y + 50}
+                        x2={toTable.position.x}
+                        y2={toTable.position.y + 50}
+                        stroke="#3b82f6"
+                        strokeWidth="3"
+                        className="transition-all duration-200"
+                        style={{ pointerEvents: 'all' }}
+                        onMouseEnter={() => setHoveredRelationship(conn.id)}
+                        onMouseLeave={() => setHoveredRelationship(null)}
+                      />
+                      <circle cx={fromTable.position.x + 200} cy={fromTable.position.y + 50} r="5" fill="#3b82f6" />
+                      <circle cx={toTable.position.x} cy={toTable.position.y + 50} r="5" fill="#3b82f6" />
+                      
+                      {hoveredRelationship === conn.id && (
+                        <g>
+                          <rect
+                            x={(fromTable.position.x + toTable.position.x + 200) / 2 - 25}
+                            y={(fromTable.position.y + toTable.position.y + 100) / 2 - 15}
+                            width="50"
+                            height="30"
+                            rx="6"
+                            fill="#1f2937"
+                            className="animate-fade-in"
+                          />
+                          <text
+                            x={(fromTable.position.x + toTable.position.x + 200) / 2}
+                            y={(fromTable.position.y + toTable.position.y + 100) / 2}
+                            textAnchor="middle"
+                            className="text-sm font-medium fill-white"
+                            dy="0.3em"
+                          >
+                            {conn.type}
+                          </text>
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
               </svg>
             </div>
 
-            {/* Relationship Details */}
-            <div className="flex justify-center">
-              <Card className="w-96">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                    <span>Customer - Orders</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Relationship Type</span>
-                      <Badge variant="outline">One-to-Many (1:M)</Badge>
+            {relationshipConnections.map((conn) => (
+              <div key={conn.id} className="flex justify-center">
+                <Card className="w-96">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                      <span>{conn.from.table} - {conn.to.table}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Relationship Type</span>
+                        <Badge variant="outline">{conn.type}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Linking Column</span>
+                        <Badge variant="secondary">{conn.from.column}</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-2">
+                        {conn.description}
+                      </p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Linking Column</span>
-                      <Badge variant="secondary">customer_id</Badge>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-2">
-                      One customer can have multiple orders
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
             
             <div className="text-center">
               <Button onClick={() => setShowRelationships(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
