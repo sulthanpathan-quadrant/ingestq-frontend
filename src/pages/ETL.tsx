@@ -66,9 +66,7 @@ export default function ETL() {
     navigate('/dashboard/business-logic');
   };
 
-  const handleGoNext = () => {
-    navigate('/dashboard/rules');
-  };
+ 
 
   const simulateTransformationStep = (stepIndex: number): Promise<void> => {
     return new Promise((resolve) => {
@@ -262,13 +260,7 @@ export default function ETL() {
             Back
           </Button>
           
-          <Button
-            onClick={handleGoNext}
-            className="flex items-center gap-2"
-          >
-            Next
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          
         </div>
 
         {/* Schedule Job Dialog */}

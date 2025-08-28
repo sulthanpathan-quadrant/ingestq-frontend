@@ -212,12 +212,7 @@ export function AuthenticatedLayout() {
                     >
                       <PanelLeft className="w-5 h-5" />
                     </Button>
-                    <NavLink to="/dashboard" className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg relative">
-                        <Brain className="w-5 h-5 text-primary-foreground absolute top-1 left-1" />
-                        <Database className="w-5 h-5 text-primary-foreground absolute bottom-1 right-1" />
-                      </div>
-                    </NavLink>
+                    
                   </div>
                   <h2 className="text-lg font-semibold text-foreground flex items-center">
                     <Briefcase className="w-5 h-5 mr-2" />
