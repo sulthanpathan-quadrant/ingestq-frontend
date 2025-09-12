@@ -1,8 +1,8 @@
 
-const BASE_URL = "http://13.233.244.191:8000";
+const BASE_URL = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com";
 
 export interface RegisterData {
-    username: string;
+    full_name: string;
     email: string;
     password: string;
 }
@@ -129,7 +129,7 @@ export interface DQValidationResponse {
       proposed_solution: string;
     };
   };
-  propsed_solutions: { [ruleName: string]: string };
+  proposed_solutions: { [ruleName: string]: string };
 }
 
 export interface DQFixingRequest {
@@ -1125,6 +1125,8 @@ export interface CreatePipelineRequest {
 }
 
 export interface Pipeline {
+  nodes: any[];
+  edges: any[];
   pipelineId: string;
   pipelineName: string;
   user_id: string;
@@ -1243,5 +1245,105 @@ export const runPipeline = async (
 
   const result = await response.json();
   console.log("✅ Run Pipeline Response:", result);
+  return result;
+};
+
+// ---------------- Pipelines API ----------------
+
+// Pipeline type
+export interface Pipeline {
+  pipeline_id: string;
+  pipeline_name: string;
+  created_at: string;
+  status: "CREATED" | "RUNNING" | "COMPLETED" | string;
+  num_jobs: number;
+}
+
+// Get All Pipelines Response
+export interface GetPipelinesResponse {
+  success: boolean;
+  message: string;
+  pipelines: Pipeline[];
+}
+
+// Get All Pipelines API
+export const getAllPipelines = async (): Promise<GetPipelinesResponse> => {
+  const token = getAuthToken();
+  const response = await fetch(`${BASE_URL}/get_all_pipelines`, {
+    method: "GET",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `API Error (${response.status}) at ${new Date().toISOString()}: ${errorText}`
+    );
+    throw new Error(
+      `Failed to fetch pipelines: ${response.status} - ${errorText}`
+    );
+  }
+
+  const result: GetPipelinesResponse = await response.json();
+  console.log("✅ Get All Pipelines Response:", result);
+  return result;
+};
+
+
+//get pipelines job
+export interface PipelineJob {
+  createdAt: string; // normalize both created_at and createdAt
+  datadestination: string;
+  jobId: string;
+  triggerType: "SCHEDULE" | "File";
+  Status: string;
+  email: string;
+  scheduleDetails: ScheduleDetails | {};
+  jobName: string;
+  user_id: string;
+  glue_job_name?: string; // optional
+  steps: JobStepConfig | {};
+  business_logic_rules: Record<string, string>;
+  datasource: string;
+  LastRun: string | null;
+  FolderName?: string;
+  FileName?: string;
+  BucketName?: string;
+  updatedAt?: string;
+  etag?: string;
+}
+
+export interface GetPipelineJobsResponse {
+  success: boolean;
+  message: string;
+  jobs: PipelineJob[];
+}
+
+// Get Jobs for a Pipeline API
+export const getPipelineJobs = async (pipelineId: string): Promise<GetPipelineJobsResponse> => {
+  const token = getAuthToken();
+  const url = `${BASE_URL}/getpipelinejobs?pipeline_id=${encodeURIComponent(pipelineId)}`;
+  console.log(`Fetching pipeline jobs from: ${url}`);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ API Error (${response.status}) at ${new Date().toISOString()}: ${errorText}`);
+    throw new Error(`Failed to fetch pipeline jobs: ${response.status} - ${errorText}`);
+  }
+
+  const result: GetPipelineJobsResponse = await response.json();
+
+  // Normalize "created_at" → "createdAt"
+  result.jobs = result.jobs.map(job => ({
+    ...job,
+    createdAt: (job as any).created_at || job.createdAt,
+  }));
+
+  console.log("✅ Get Pipeline Jobs Response:", result);
   return result;
 };

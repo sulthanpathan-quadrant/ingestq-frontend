@@ -1,3 +1,5 @@
+// recent my code
+
 // import {
 //   Dialog,
 //   DialogContent,
@@ -24,6 +26,8 @@
 //   description?: string;
 //   isConnected?: boolean;
 //   stages?: JobStage[];
+//   FileName?: string;
+//   BucketName?: string;
 // }
 
 // interface ViewJobDialogProps {
@@ -67,6 +71,8 @@
 //     }
 //   };
 
+//   const filePath = job.BucketName && job.FileName ? `${job.BucketName}/${job.FileName}` : 'N/A';
+
 //   return (
 //     <Dialog open={open} onOpenChange={onOpenChange}>
 //       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -87,12 +93,12 @@
 //                       <p className="font-medium">{job.name}</p>
 //                     </div>
 //                     <div>
-//                       <span className="text-sm text-muted-foreground">Category:</span>
-//                       <p className="font-medium">{job.category}</p>
-//                     </div>
-//                     <div>
 //                       <span className="text-sm text-muted-foreground">Description:</span>
 //                       <p className="font-medium">{job.description || 'No description available'}</p>
+//                     </div>
+//                     <div>
+//                       <span className="text-sm text-muted-foreground">File Path:</span>
+//                       <p className="font-medium">{filePath}</p>
 //                     </div>
 //                   </div>
 //                 </div>
@@ -103,9 +109,9 @@
 //                       <span className="text-sm text-muted-foreground">Last Run:</span>
 //                       <p className="font-medium">{job.lastRun}</p>
 //                     </div>
-//                     <div>
+//                     <div className="flex items-center gap-2">
 //                       <span className="text-sm text-muted-foreground">Status:</span>
-//                       <Badge className={`${getStatusColor(job.status)} ml-2`}>
+//                       <Badge className={`${getStatusColor(job.status)}`}>
 //                         {job.status}
 //                       </Badge>
 //                     </div>
@@ -119,10 +125,10 @@
 //             </CardContent>
 //           </Card>
 
-//           {/* Job Stages */}
+//           {/* Job Steps */}
 //           {job.stages && job.stages.length > 0 && (
 //             <div>
-//               <h3 className="text-lg font-semibold mb-4">Job Stages ({job.stages.length})</h3>
+//               <h3 className="text-lg font-semibold mb-4">Job Steps ({job.stages.length})</h3>
 //               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 //                 {job.stages.map((stage, index) => {
 //                   const StageIcon = getStageIcon(stage.type);
@@ -136,7 +142,7 @@
 //                           <div className="flex-1 min-w-0">
 //                             <div className="flex items-center gap-2 mb-2">
 //                               <span className="text-xs font-medium text-muted-foreground">
-//                                 Stage {index + 1}
+//                                 Step {index + 1}
 //                               </span>
 //                               {getStatusIcon(stage.status)}
 //                             </div>
@@ -165,6 +171,8 @@
 //   );
 // }
 
+//recent my code
+
 
 import {
   Dialog,
@@ -175,14 +183,15 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Database, FileText, Settings, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-
+import { format } from "date-fns";
+ 
 interface JobStage {
   id: string;
   name: string;
   type: string;
   status: string;
 }
-
+ 
 interface Job {
   id: string;
   name: string;
@@ -194,17 +203,18 @@ interface Job {
   stages?: JobStage[];
   FileName?: string;
   BucketName?: string;
+  datadestination?: string;
 }
-
+ 
 interface ViewJobDialogProps {
   job: Job | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
+ 
 export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialogProps) {
   if (!job) return null;
-
+ 
   const getStageIcon = (type: string) => {
     switch (type) {
       case 'extraction': return Database;
@@ -218,7 +228,7 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
       default: return Settings;
     }
   };
-
+ 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />;
@@ -227,7 +237,7 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
       default: return <Clock className="w-4 h-4 text-gray-500" />;
     }
   };
-
+ 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
@@ -236,16 +246,30 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
-
-  const filePath = job.BucketName && job.FileName ? `${job.BucketName}/${job.FileName}` : 'N/A';
-
+ 
+  const formatDateTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Invalid Date";
+      }
+      return format(date, "yyyy-MM-dd HH:mm:ss");
+    } catch {
+      return "Invalid Date";
+    }
+  };
+ 
+  const sourceFilePath = job.BucketName && job.FileName ? `${job.BucketName}/${job.FileName}` : 'N/A';
+  const destinationPath = job.datadestination || 'N/A';
+  const isPipelineConnected = job.stages && job.stages.length > 0 ? 'Yes' : 'No';
+ 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Job Details - {job.name}</DialogTitle>
         </DialogHeader>
-
+ 
         <div className="space-y-6">
           {/* Job Information */}
           <Card>
@@ -263,8 +287,12 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
                       <p className="font-medium">{job.description || 'No description available'}</p>
                     </div>
                     <div>
-                      <span className="text-sm text-muted-foreground">File Path:</span>
-                      <p className="font-medium">{filePath}</p>
+                      <span className="text-sm text-muted-foreground">Source File Path:</span>
+                      <p className="font-medium">{sourceFilePath}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Destination File Path:</span>
+                      <p className="font-medium">{destinationPath}</p>
                     </div>
                   </div>
                 </div>
@@ -273,7 +301,7 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
                   <div className="space-y-2">
                     <div>
                       <span className="text-sm text-muted-foreground">Last Run:</span>
-                      <p className="font-medium">{job.lastRun}</p>
+                      <p className="font-medium">{formatDateTime(job.lastRun)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Status:</span>
@@ -283,14 +311,14 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">Pipeline Connected:</span>
-                      <p className="font-medium">{job.isConnected ? 'Yes' : 'No'}</p>
+                      <p className="font-medium">{isPipelineConnected}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-
+ 
           {/* Job Steps */}
           {job.stages && job.stages.length > 0 && (
             <div>
@@ -313,8 +341,8 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
                               {getStatusIcon(stage.status)}
                             </div>
                             <h4 className="font-medium text-sm mb-1 truncate">{stage.name}</h4>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={`text-xs ${getStatusColor(stage.status)}`}
                             >
                               {stage.status}
@@ -336,3 +364,4 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
     </Dialog>
   );
 }
+ 

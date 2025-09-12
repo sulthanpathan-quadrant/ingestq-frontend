@@ -11,6 +11,7 @@ export interface Edge extends Omit<ReactFlowEdge, 'type' | 'markerEnd' | 'style'
 }
 
 export interface Pipeline {
+  status: string;
   id: string;
   name: string;
   jobs: string[];

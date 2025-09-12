@@ -19,7 +19,7 @@ const getAuthToken = () => {
 
 const getBaseUrl = () => {
   // Fallback to a default URL if environment variable is not set
-  const defaultUrl = "http://13.233.244.191:8000";
+  const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com";
   const baseUrl = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) || defaultUrl;
   console.log("Base URL:", baseUrl);
   return baseUrl;

@@ -2214,7 +2214,7 @@ export default function Rules() {
       const request: DQFixingRequest = {
         csv_file_path: `s3://${bucket}/${key}`,
         rules: allRules,
-        proposed_solutions: validationResponse.propsed_solutions || validationResponse.propsed_solutions, // Handle potential typo
+        proposed_solutions: validationResponse.proposed_solutions || validationResponse.proposed_solutions, // Handle potential typo
       };
       const response: DQFixingResponse = await runDQFixing(request);
       // Assuming the backend handles the fixing; we don't use the response here beyond success

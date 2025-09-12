@@ -50,7 +50,7 @@ const handleRegister = async () => {
   if (registerData.username && registerData.email && registerData.password) {
     try {
       const data = await registerUser({
-        username: registerData.username,   // ✅ include username
+        full_name: registerData.username,   // ✅ include username
         email: registerData.email,
         password: registerData.password,
       });
