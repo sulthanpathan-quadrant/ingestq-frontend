@@ -2424,7 +2424,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Search, Play, Eye, Edit, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PipelineBuilderDialog from "@/components/jobs/PipelineBuilderDialog";
-import ViewJobDialog01 from "@/components/jobs/ViewjobDialog01";
+import ViewJobDialog01 from "@/components/jobs/ViewJobDialog01";
 import { cn } from "@/lib/utils";
 import { getAllPipelines, runPipeline, editPipeline, createPipeline, getPipelineJobs } from "@/lib/api";
 
