@@ -1121,7 +1121,7 @@ export default function EnhancedEditJobDialog({
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Job Stage Pipeline ({stages.length} stages)</h3>
               <div className="text-sm text-muted-foreground">
-                 Click to configure
+                 Click + to add stages . Click to configure
               </div>
             </div>
            

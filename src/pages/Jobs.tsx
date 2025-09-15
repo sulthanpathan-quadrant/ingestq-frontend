@@ -939,7 +939,8 @@ export default function Jobs() {
 //   return { bucket, key };
 // };
 
-const validateLocalStorage = () => {
+// Update the validateLocalStorage function
+const validateLocalStorage = (strictValidation: boolean = false) => {
   const isFreshLogin = localStorage.getItem("freshLogin") === "true";
   const isReturningFromUpload = localStorage.getItem("returningFromUpload") === "true";
   const isCreatingNewJob = localStorage.getItem("creatingNewJob") === "true";
@@ -960,19 +961,26 @@ const validateLocalStorage = () => {
     return true;
   }
 
-  const bucket = localStorage.getItem("selectedBucket");
-  const key = localStorage.getItem("selectedFile");
-  if (!bucket || !key) {
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: "Missing bucket name or key. Please upload the file again.",
-    });
-    navigate("/dashboard/upload");
-    return false;
+  // Only enforce bucket and key check if strictValidation is true
+  if (strictValidation) {
+    const bucket = localStorage.getItem("selectedBucket");
+    const key = localStorage.getItem("selectedFile");
+    if (!bucket || !key) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing bucket name or key. Please upload the file again.",
+      });
+      navigate("/dashboard/upload");
+      return false;
+    }
+    return { bucket, key };
   }
-  return { bucket, key };
+
+  // Return true for non-strict validation (e.g., just viewing the Jobs page)
+  return true;
 };
+
   // Fetch jobs from API and load from localStorage
   useEffect(() => {
     if (!validateLocalStorage()) return
