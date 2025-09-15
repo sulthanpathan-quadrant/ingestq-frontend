@@ -19,21 +19,42 @@ function LandingContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async () => {
+
+//   const handleLogin = async () => {
+//   try {
+//     const res = await loginUser({ email: loginData.email, password: loginData.password });
+    
+//     // Save token and user info only if login succeeds
+//     localStorage.setItem("token", res.token);
+//     localStorage.setItem("user", JSON.stringify(res.user));
+
+//     setShowLogin(false);
+
+//     toast({
+//       title: "Login successful",
+//       description: `Welcome back, ${res.user.username}!`,
+//     });
+
+//     navigate("/dashboard/jobs");
+//   } catch (err: any) {
+//     toast({
+//       title: "Login Failed",
+//       description: err.message || "Invalid credentials or unregistered user",
+//       variant: "destructive",
+//     });
+//   }
+// };
+const handleLogin = async () => {
   try {
     const res = await loginUser({ email: loginData.email, password: loginData.password });
-    
-    // Save token and user info only if login succeeds
     localStorage.setItem("token", res.token);
     localStorage.setItem("user", JSON.stringify(res.user));
-
+    localStorage.setItem("freshLogin", "true"); // Add flag for fresh login
     setShowLogin(false);
-
     toast({
       title: "Login successful",
       description: `Welcome back, ${res.user.username}!`,
     });
-
     navigate("/dashboard/jobs");
   } catch (err: any) {
     toast({
@@ -44,10 +65,19 @@ function LandingContent() {
   }
 };
 
-
   
 const handleRegister = async () => {
   if (registerData.username && registerData.email && registerData.password) {
+
+    if (registerData.password.length < 8) {
+  toast({
+    title: "Weak password",
+    description: "Password must be at least 8 characters long.",
+    variant: "destructive",
+  });
+  return;
+}
+
     try {
       const data = await registerUser({
         full_name: registerData.username,   // ✅ include username
@@ -659,7 +689,7 @@ const handleRegister = async () => {
           <div className="space-y-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email<span className="text-red-500">*</span></Label>
                 <Input
                   id="email"
                   type="email"
@@ -670,7 +700,7 @@ const handleRegister = async () => {
                 />
               </div>
               <div>
-                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium">Password<span className="text-red-500">*</span></Label>
                 <Input
                   id="password"
                   type="password"
@@ -724,7 +754,7 @@ const handleRegister = async () => {
           <div className="space-y-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                <Label htmlFor="name" className="text-sm font-medium">Full Name<span className="text-red-500">*</span></Label>
                 <Input
                   id="name"
                   type="username"
@@ -735,7 +765,7 @@ const handleRegister = async () => {
                 />
               </div>
               <div>
-                <Label htmlFor="reg-email" className="text-sm font-medium">Email</Label>
+                <Label htmlFor="reg-email" className="text-sm font-medium">Email<span className="text-red-500">*</span></Label>
                 <Input
                   id="reg-email"
                   type="email"
@@ -746,7 +776,8 @@ const handleRegister = async () => {
                 />
               </div>
               <div>
-                <Label htmlFor="reg-password" className="text-sm font-medium">Password</Label>
+                <Label htmlFor="reg-password" className="text-sm font-medium">Password<span className="text-red-500">*</span></Label>
+                    <span className="text-xs text-gray-500">  (min 8 characters)</span>
                 <Input
                   id="reg-password"
                   type="password"

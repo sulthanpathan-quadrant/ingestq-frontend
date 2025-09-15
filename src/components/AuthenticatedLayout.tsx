@@ -2022,6 +2022,7 @@
 //   );
 // }
 
+
 import { Job, JobStage } from '@/components/types/jobs'; // Adjust path as needed
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
@@ -2185,31 +2186,64 @@ export function AuthenticatedLayout() {
     fetchJobs();
   }, [toast, navigate]);
 
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-      if (token) {
-        await logoutUser();
-      }
 
-      localStorage.removeItem("authenticated");
-      localStorage.removeItem("user");
-      localStorage.removeItem("authToken");
+  // const handleLogout = async () => {
+  //   try {
+  //     const token = localStorage.getItem("authToken");
+  //     if (token) {
+  //       await logoutUser();
+  //     }
 
-      toast({
-        title: "Logged out successfully",
-        description: "See you next time!",
-      });
+  //     localStorage.removeItem("authenticated");
+  //     localStorage.removeItem("user");
+  //     localStorage.removeItem("authToken");
 
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Logout failed",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      });
+  //     toast({
+  //       title: "Logged out successfully",
+  //       description: "See you next time!",
+  //     });
+
+  //     navigate("/");
+  //   } catch (error: any) {
+  //     toast({
+  //       title: "Logout failed",
+  //       description: error.message || "Something went wrong",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
+  
+const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      await logoutUser();
     }
-  };
+
+    // Clear all relevant localStorage items
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("authenticated");
+    localStorage.removeItem("freshLogin");
+    localStorage.removeItem("selectedBucket");
+    localStorage.removeItem("selectedFile");
+
+    toast({
+      title: "Logged out successfully",
+      description: "See you next time!",
+    });
+
+    navigate("/");
+  } catch (error: any) {
+    toast({
+      title: "Logout failed",
+      description: error.message || "Something went wrong",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleJobClick = (job: Job) => {
     if (job.pipelineId) {
