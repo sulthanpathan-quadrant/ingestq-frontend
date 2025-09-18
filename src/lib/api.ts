@@ -206,6 +206,24 @@ export interface BLValidationResponse {
   };
 }
 
+// export interface ETLRequest {
+//   payload: {
+//     file_paths: {
+//       [filePath: string]: {
+//         output_path: string;
+//       };
+//     };
+//   };
+// }
+
+// export interface ETLResponse {
+//   statusCode: number;
+//   body: {
+//     statusCode: number;
+//     body: string; // e.g. "{\"etl_method\": \"Glue\"}"
+//   };
+// }
+
 export interface ETLRequest {
   payload: {
     file_paths: {
@@ -213,6 +231,7 @@ export interface ETLRequest {
         output_path: string;
       };
     };
+    gname: string; // NEW field
   };
 }
 
@@ -225,54 +244,55 @@ export interface ETLResponse {
 }
 
 
-// Create Job Config Types
-export interface JobStepConfig {
-  rules: "executed" | "skipped";
-  ner: "executed" | "skipped";
-  businessLogic: "executed" | "skipped";
-  datatransformations:"executed"|"skipped";
-}
 
-export interface ScheduleDetails {
-  frequency?: string; // e.g., "daily"
-  time?: string;      // e.g., "10:23"
-}
+// // Create Job Config Types
+// export interface JobStepConfig {
+//   rules: "executed" | "skipped";
+//   ner: "executed" | "skipped";
+//   businessLogic: "executed" | "skipped";
+//   datatransformations:"executed"|"skipped";
+// }
 
-export interface CreateJobConfigRequest {
-  jobName: string;
-  triggerType: "SCHEDULE" | "File";
-  steps: JobStepConfig;
-  datasource: string;         // e.g., "s3://bucket/key.csv"
-  datadestination: string;    // e.g., "Azure"
-  scheduleDetails?: ScheduleDetails;
-   job_type?: string;          // optional
-  glue_name?: string;         // optional
-}
+// export interface ScheduleDetails {
+//   frequency?: string; // e.g., "daily"
+//   time?: string;      // e.g., "10:23"
+// }
 
-export interface JobConfigResponse {
-  success: boolean;
-  message: string;
-  job: {
-    jobId: string;
-    user_id: string;
-    email: string;
-    jobName: string;
-    triggerType: string;
-    steps: JobStepConfig;
-    datasource: string;
-    datadestination: string;
-    scheduleDetails: ScheduleDetails | {};
-    createdAt: string;
-    BucketName: string;
-    FolderName: string;
-    FileName: string;
-    Status: string;
-    LastRun: string;
-    etag: string;
-    job_type?: string;       // optional
-    glue_name?: string;      // optional
-  };
-}
+// export interface CreateJobConfigRequest {
+//   jobName: string;
+//   triggerType: "SCHEDULE" | "File";
+//   steps: JobStepConfig;
+//   datasource: string;         // e.g., "s3://bucket/key.csv"
+//   datadestination: string;    // e.g., "Azure"
+//   scheduleDetails?: ScheduleDetails;
+//    job_type?: string;          // optional
+//   glue_name?: string;         // optional
+// }
+
+// export interface JobConfigResponse {
+//   success: boolean;
+//   message: string;
+//   job: {
+//     jobId: string;
+//     user_id: string;
+//     email: string;
+//     jobName: string;
+//     triggerType: string;
+//     steps: JobStepConfig;
+//     datasource: string;
+//     datadestination: string;
+//     scheduleDetails: ScheduleDetails | {};
+//     createdAt: string;
+//     BucketName: string;
+//     FolderName: string;
+//     FileName: string;
+//     Status: string;
+//     LastRun: string;
+//     etag: string;
+//     job_type?: string;       // optional
+//     glue_name?: string;      // optional
+//   };
+// }
 
 // Job type
 export interface Job {
@@ -788,7 +808,30 @@ export const runBLValidation = async (
 };
 
 
-//etl api
+// //etl api
+// export const runETL = async (data: ETLRequest): Promise<ETLResponse> => {
+//   const token = getAuthToken();
+//   const response = await fetch(`${BASE_URL}/invoke-etl`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Authorization": `Bearer ${token}`,
+//     },
+//     body: JSON.stringify(data),
+//   });
+
+//   if (!response.ok) {
+//     const errorText = await response.text();
+//     throw new Error(`Failed to invoke ETL: ${response.status} - ${errorText}`);
+//   }
+
+//   const result = await response.json();
+//   console.log("✅ ETL Response:", result);
+//   return result;
+// };
+
+
+// invoke-etl API
 export const runETL = async (data: ETLRequest): Promise<ETLResponse> => {
   const token = getAuthToken();
   const response = await fetch(`${BASE_URL}/invoke-etl`, {
@@ -805,37 +848,39 @@ export const runETL = async (data: ETLRequest): Promise<ETLResponse> => {
     throw new Error(`Failed to invoke ETL: ${response.status} - ${errorText}`);
   }
 
-  const result = await response.json();
+  const result: ETLResponse = await response.json();
   console.log("✅ ETL Response:", result);
   return result;
 };
 
 
-// Create Job Config API
-export const createJobConfig = async (
-  data: CreateJobConfigRequest
-): Promise<JobConfigResponse> => {
-  const token = getAuthToken();
-  const response = await fetch(`${BASE_URL}/create-job-config`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to create job config: ${response.status} - ${errorText}`
-    );
-  }
 
-  const result: JobConfigResponse = await response.json();
-  console.log("✅ Create Job Config Response:", result);
-  return result;
-};
+// // Create Job Config API
+// export const createJobConfig = async (
+//   data: CreateJobConfigRequest
+// ): Promise<JobConfigResponse> => {
+//   const token = getAuthToken();
+//   const response = await fetch(`${BASE_URL}/create-job-config`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Authorization": `Bearer ${token}`,
+//     },
+//     body: JSON.stringify(data),
+//   });
+
+//   if (!response.ok) {
+//     const errorText = await response.text();
+//     throw new Error(
+//       `Failed to create job config: ${response.status} - ${errorText}`
+//     );
+//   }
+
+//   const result: JobConfigResponse = await response.json();
+//   console.log("✅ Create Job Config Response:", result);
+//   return result;
+// };
 
 // Fetch Jobs API
 export const getJobs = async (): Promise<GetJobsResponse> => {
@@ -1428,5 +1473,121 @@ export const getUserAggregatedMetrics = async (
 
   const result: UserAggregatedMetricsResponse = await response.json();
   console.log("✅ User Aggregated Metrics Response:", result);
+  return result;
+};
+
+
+// Check Job by Glue Name API
+export interface CheckJobGNameResponse {
+  success: boolean;
+  message: string;
+  user: any | null;
+  status_code: number;
+}
+
+export const checkJobGName = async (gname: string): Promise<CheckJobGNameResponse> => {
+  const token = getAuthToken();
+  const url = `${BASE_URL}/check-job-gname?gname=${encodeURIComponent(gname)}`;
+  
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `API Error (${response.status}) at ${new Date().toISOString()}: ${errorText}`
+    );
+    throw new Error(`Failed to check job gname: ${response.status} - ${errorText}`);
+  }
+
+  const result: CheckJobGNameResponse = await response.json();
+  console.log("✅ Check Job GName Response:", result);
+  return result;
+};
+
+
+
+// Create Job Config Types
+export interface JobStepConfig {
+  rules: "executed" | "skipped" | "used";
+  ner: "executed" | "skipped" | "used";
+  etl?: "executed" | "skipped" | "used"; // optional since you’re passing it
+  businessLogic: "executed" | "skipped" | "used";
+  datatransformations?: "executed" | "skipped" | "used"; // keep optional
+}
+
+export interface ScheduleDetails {
+  frequency?: string; // e.g., "daily"
+  time?: string;      // e.g., "10:23"
+}
+
+export interface CreateJobConfigRequest {
+  jobName: string;
+  triggerType: "SCHEDULE" | "File";
+  steps: JobStepConfig;
+  datasource: string;         // e.g., "s3://bucket/key.csv"
+  datadestination: string;    // e.g., "s3://bucket/output/"
+  scheduleDetails?: ScheduleDetails;
+  business_logic_rules?: { [key: string]: string }; // dynamic rules
+  job_type?: string;          // optional
+  glue_name?: string;         // optional
+  gname: string;              // ✅ newly added
+}
+
+export interface JobConfigResponse {
+  success: boolean;
+  message: string;
+  job: {
+    jobId: string;
+    user_id: string;
+    email: string;
+    jobName: string;
+    triggerType: string;
+    steps: JobStepConfig;
+    datasource: string;
+    datadestination: string;
+    scheduleDetails: ScheduleDetails | {};
+    business_logic_rules?: { [key: string]: string };
+    createdAt: string;
+    BucketName: string;
+    FolderName: string;
+    FileName: string;
+    Status: string;
+    LastRun: string;
+    etag: string;
+    job_type?: string;
+    glue_name?: string;
+    gname: string;  // ✅ newly added
+  };
+}
+
+// Create Job Config API
+export const createJobConfig = async (
+  data: CreateJobConfigRequest
+): Promise<JobConfigResponse> => {
+  const token = getAuthToken();
+  const response = await fetch(`${BASE_URL}/create-job-config`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create job config: ${response.status} - ${errorText}`
+    );
+  }
+
+  const result: JobConfigResponse = await response.json();
+  console.log("✅ Create Job Config Response:", result);
   return result;
 };

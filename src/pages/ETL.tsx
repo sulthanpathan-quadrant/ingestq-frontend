@@ -1005,6 +1005,411 @@
 //   );
 // }
 
+// this is my main code--//
+
+// import { useState, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+// import { Button } from "@/components/ui/button";
+// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
+// import { Progress } from "@/components/ui/progress";
+// import { FileText, Calendar, Play, ArrowLeft, RefreshCw, Settings, SkipForward } from "lucide-react";
+// import { cn } from "@/lib/utils";
+// import { useToast } from "@/hooks/use-toast";
+
+// // ================== ETL API ==================
+
+// export interface ETLRequest {
+//   payload: {
+//     file_paths: {
+//       [filePath: string]: {
+//         output_path: string;
+//       };
+//     };
+//   };
+// }
+
+// export interface ETLResponse {
+//   statusCode: number;
+//   body: {
+//     statusCode: number;
+//     body: string; // e.g. "{\"etl_method\": \"Glue\", \"s3_output\": \"s3://bucket/parquet/file.parquet\"}"
+//   };
+// }
+
+// const getAuthToken = () => {
+//   const token = localStorage.getItem("authToken") || "";
+//   console.log("Auth Token:", token);
+//   return token;
+// };
+
+// const getBaseUrl = () => {
+//   // Fallback to a default URL if environment variable is not set
+//   const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com"; // Update this to your backend URL
+//   const baseUrl = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) || defaultUrl;
+//   console.log("Base URL:", baseUrl);
+//   return baseUrl;
+// };
+
+// export const runETL = async (data: ETLRequest): Promise<ETLResponse> => {
+//   const token = getAuthToken();
+//   const baseUrl = getBaseUrl();
+//   console.log("API Request URL:", `${baseUrl}/invoke-etl`);
+//   console.log("API Request Data:", JSON.stringify(data, null, 2));
+
+//   try {
+//     const response = await fetch(`${baseUrl}/invoke-etl`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Authorization": `Bearer ${token}`,
+//       },
+//       body: JSON.stringify(data),
+//     });
+
+//     console.log("Response Status:", response.status);
+//     console.log("Response Headers:", Object.fromEntries(response.headers));
+
+//     if (!response.ok) {
+//       const errorText = await response.text();
+//       console.error("API Error Response:", errorText);
+//       throw new Error(`Failed to invoke ETL: ${response.status} - ${errorText}`);
+//     }
+
+//     const result = await response.json();
+//     console.log("API Response:", result);
+//     if (result.body && result.body.body) {
+//       console.log("S3 Output Path:", JSON.parse(result.body.body).s3_output || "Not specified");
+//     }
+//     return result;
+//   } catch (error: any) {
+//     console.error("Fetch Error:", error.message);
+//     throw error;
+//   }
+// };
+
+// interface DataSource {
+//   id: string;
+//   name: string;
+//   type: "S3 Bucket";
+//   status: "Connected" | "Error" | "Pending";
+//   bucketName?: string;
+//   fileName?: string;
+//   inputPath?: string;
+//   outputPath?: string;
+// }
+
+// interface Transformation {
+//   id: string;
+//   name: string;
+//   status: "Completed" | "Running" | "Pending" | "Failed";
+//   progress: number;
+// }
+
+// const validateLocalStorage = () => {
+//   const bucket = localStorage.getItem("selectedBucket");
+//   const key = localStorage.getItem("selectedFile");
+//   console.log("LocalStorage - selectedBucket:", bucket);
+//   console.log("LocalStorage - selectedFile:", key);
+//   if (!bucket || !key) {
+//     console.warn("Missing or empty bucket or key in localStorage.");
+//     return false;
+//   }
+//   return { bucket, key };
+// };
+
+// const initialTransformations: Transformation[] = [
+//   { id: "tf-1", name: "Data Cleaning", status: "Pending", progress: 0 },
+//   { id: "tf-2", name: "Data Standardization", status: "Pending", progress: 0 },
+//   { id: "tf-3", name: "Data Enrichment", status: "Pending", progress: 0 },
+// ];
+
+// export default function ETL() {
+//   const navigate = useNavigate();
+//   const { toast } = useToast();
+//   const [dataSources, setDataSources] = useState<DataSource[]>([]);
+//   const [transformations, setTransformations] = useState<Transformation[]>(initialTransformations);
+//   const [isJobRunning, setIsJobRunning] = useState(false);
+//   const [bucket, setBucket] = useState<string>("");
+//   const [key, setKey] = useState<string>("");
+
+//   useEffect(() => {
+//     const storageData = validateLocalStorage();
+//     if (!storageData) {
+//       toast({
+//         variant: "destructive",
+//         title: "Error",
+//         description: "Missing bucket name or key. Please upload the file again.",
+//       });
+//       navigate("/dashboard/upload");
+//       return;
+//     }
+//     const { bucket, key } = storageData;
+//     setBucket(bucket);
+//     setKey(key);
+//     const outputPath = `s3://${bucket}/parquet/${key.replace(/\.[^/.]+$/, "")}.parquet`;
+//     setDataSources([
+//       {
+//         id: "s3-1",
+//         name: "Selected S3 Data",
+//         type: "S3 Bucket",
+//         status: "Connected",
+//         bucketName: bucket,
+//         fileName: key,
+//         inputPath: `s3://${bucket}/${key}`,
+//         outputPath: outputPath,
+//       },
+//     ]);
+//   }, [navigate, toast]);
+
+//   const handleScheduleJob = () => {
+//     navigate("/dashboard/schedule-job");
+//     toast({
+//       title: "Proceeding to Job Scheduling",
+//       description: "Configure when your job should run",
+//     });
+//   };
+
+//   const handleGoBack = () => {
+//     navigate("/dashboard/business-logic");
+//   };
+//   const handleSkip = () => {
+//             localStorage.setItem('datatransformations', 'skipped');
+
+//     navigate("/dashboard/schedule-job");
+//     toast({
+//       title: "NER Skipped",
+//       description: "Named Entity Resolution has been skipped",
+//     });
+//   };
+
+//   const handleRunJob = async () => {
+//             localStorage.setItem('datatransformations', 'executed');
+//     setIsJobRunning(true);
+//     setTransformations((prev) =>
+//       prev.map((t) => ({ ...t, status: "Running" as const, progress: 0 }))
+//     );
+
+//     try {
+//       // Simulate progress for each step sequentially
+//       for (let i = 0; i < transformations.length; i++) {
+//         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second per step
+//         setTransformations((prev) =>
+//           prev.map((t, index) =>
+//             index === i
+//               ? { ...t, progress: 100, status: "Completed" as const }
+//               : t
+//           )
+//         );
+//       }
+
+//       // Perform API call after transformations
+//       const storageData = validateLocalStorage();
+//       if (!storageData) {
+//         throw new Error("Missing bucket or key in local storage.");
+//       }
+
+//       const { bucket, key } = storageData;
+//       const outputPath = `s3://${bucket}/parquet/${key.replace(/\.[^/.]+$/, "")}.parquet`;
+//       const file_paths: { [filePath: string]: { output_path: string } } = {
+//         [`s3://${bucket}/${key}`]: { output_path: outputPath },
+//       };
+
+//       if (Object.keys(file_paths).length > 0) {
+//         const data: ETLRequest = { payload: { file_paths } };
+//         const response = await runETL(data);
+//         const bodyData = JSON.parse(response.body.body);
+        
+//         setIsJobRunning(false);
+//         setTransformations((prev) =>
+//           prev.map((t) => ({ ...t, status: "Completed" as const }))
+//         );
+
+//         if (bodyData.s3_output) {
+//           toast({
+//             title: "Success",
+//             description: `ETL job completed. Parquet file stored at ${bodyData.s3_output}`,
+//           });
+//         } else {
+//           toast({
+//             title: "Warning",
+//             description: "ETL job completed.",
+//           });
+//         }
+//       }
+//     } catch (error: any) {
+//       setIsJobRunning(false);
+//       setTransformations((prev) =>
+//         prev.map((t) => ({ ...t, status: "Failed" as const, progress: 0 }))
+//       );
+//       console.error("API Call Error:", error.message);
+//       toast({
+//         title: "ETL Error",
+//         description: error.message || "An error occurred while running the ETL job.",
+//         variant: "destructive",
+//       });
+//     }
+//   };
+
+//   const handleViewReports = () => {
+//     navigate("/dashboard/reports");
+//     toast({
+//       title: "Navigating to Reports",
+//       description: "View detailed reports and analytics",
+//     });
+//   };
+
+//   const handleDataSourceSettings = (source: DataSource) => {
+//     toast({
+//       title: "Data Source Settings",
+//       description: `Configure settings for ${source.name}`,
+//     });
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+//       <div className="container mt-14 mx-auto p-6">
+//         {/* Header with Actions */}
+//         <div className="flex items-center justify-between mb-6">
+//           <div className="text-start">
+//             <h1 className="text-3xl font-bold text-foreground">Data Transformations</h1>
+//             {/* <p className="text-muted-foreground">Design, manage, and monitor your data pipelines</p> */}
+//           </div>
+//           <div className="flex items-center gap-4">
+//             <Button onClick={handleScheduleJob} variant="secondary">
+//               <Calendar className="w-4 h-4 mr-2" />
+//               Schedule Job
+//             </Button>
+           
+//             <Button
+//               onClick={handleRunJob}
+//               disabled={isJobRunning}
+//               className={cn(isJobRunning && "opacity-75")}
+//             >
+//               <Play className="w-4 h-4 mr-2" />
+//               {isJobRunning ? "Running..." : "Run Steps"}
+//             </Button>
+//           </div>
+//         </div>
+
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+//           {/* Data Sources Card */}
+//           <Card>
+//             <CardHeader>
+//               <CardTitle className="flex items-center gap-2">
+//                 <FileText className="w-5 h-5" />
+//                 Data Sources
+//               </CardTitle>
+//               <CardDescription>Connected data sources for ingestion</CardDescription>
+//             </CardHeader>
+//             <CardContent className="space-y-4">
+//               {dataSources.map((source) => (
+//                 <div key={source.id} className="flex items-center justify-between">
+//                   <div className="flex items-center space-x-4">
+//                     <div className="rounded-full p-2 bg-muted">
+//                       <FileText className="w-4 h-4 text-foreground" />
+//                     </div>
+//                     <div>
+//                       <p className="text-sm font-medium text-foreground">{source.name}</p>
+//                       <p className="text-xs text-muted-foreground">Bucket: {source.bucketName || "N/A"}</p>
+//                       <p className="text-xs text-muted-foreground">File: {source.fileName || "N/A"}</p>
+//                     </div>
+//                   </div>
+//                   <div className="flex items-center gap-2">
+//                     <Badge
+//                       className={cn(
+//                         "text-white",
+//                         source.status === "Connected" && "bg-green-500 hover:bg-green-600",
+//                         source.status === "Error" && "bg-red-500 hover:bg-red-600",
+//                         source.status === "Pending" && "bg-yellow-500 hover:bg-yellow-600"
+//                       )}
+//                     >
+//                       {source.status}
+//                     </Badge>
+//                     <Button
+//                       variant="ghost"
+//                       size="icon"
+//                       onClick={() => handleDataSourceSettings(source)}
+//                     >
+//                       <Settings className="w-4 h-4" />
+//                     </Button>
+//                   </div>
+//                 </div>
+//               ))}
+//             </CardContent>
+//           </Card>
+
+//           {/* Transformations Card */}
+//           <Card>
+//             <CardHeader>
+//               <CardTitle className="flex items-center gap-2">
+//                 <RefreshCw className="w-5 h-5" />
+//                 Data Transformations
+//               </CardTitle>
+//               <CardDescription>Data processing and transformation steps</CardDescription>
+//             </CardHeader>
+//             <CardContent className="space-y-4">
+//               {transformations.map((transform) => (
+//                 <div key={transform.id} className="space-y-2">
+//                   <div className="flex items-center justify-between">
+//                     <p className="text-sm font-medium text-foreground">{transform.name}</p>
+//                     <Badge
+//                       className={cn(
+//                         "text-white",
+//                         transform.status === "Completed" && "bg-green-500 hover:bg-green-600",
+//                         transform.status === "Running" && "bg-blue-500 hover:bg-blue-600",
+//                         transform.status === "Pending" && "bg-yellow-500 hover:bg-yellow-600",
+//                         transform.status === "Failed" && "bg-red-500 hover:bg-red-600"
+//                       )}
+//                     >
+//                       {transform.status}
+//                     </Badge>
+//                   </div>
+//                   <Progress value={transform.progress} />
+//                 </div>
+//               ))}
+//               {!isJobRunning &&
+//                 transformations.every((t) => t.status === "Completed") && (
+//                   <p className="text-sm text-green-600 font-medium mt-2">
+//                     ETL Job Completed Successfully
+//                   </p>
+//                 )}
+//               {!isJobRunning &&
+//                 transformations.some((t) => t.status === "Failed") && (
+//                   <p className="text-sm text-red-600 font-medium mt-2">
+//                     ETL Job Failed
+//                   </p>
+//                 )}
+//             </CardContent>
+//           </Card>
+//         </div>
+
+//         {/* Navigation Buttons */}
+//         <div className="flex justify-between mt-6">
+//           <Button
+//             variant="outline"
+//             onClick={handleGoBack}
+//             className="flex items-center gap-2"
+//           >
+//             <ArrowLeft className="w-4 h-4" />
+//             Back
+//           </Button>
+//            <Button
+//               variant="outline"
+//               onClick={handleSkip}
+//               className="flex items-center gap-2"
+//             >
+//               <SkipForward className="w-4 h-4" />
+//               Skip
+//             </Button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// this is my main code--//
+
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -1012,6 +1417,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FileText, Calendar, Play, ArrowLeft, RefreshCw, Settings, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -1025,6 +1432,7 @@ export interface ETLRequest {
         output_path: string;
       };
     };
+    gname: string;
   };
 }
 
@@ -1032,8 +1440,16 @@ export interface ETLResponse {
   statusCode: number;
   body: {
     statusCode: number;
-    body: string; // e.g. "{\"etl_method\": \"Glue\", \"s3_output\": \"s3://bucket/parquet/file.parquet\"}"
+    body: string; // e.g. "{\"etl_method\": \"Glue\"}"
   };
+}
+
+// Check Job by Glue Name API
+export interface CheckJobGNameResponse {
+  success: boolean;
+  message: string;
+  user: any | null;
+  status_code: number;
 }
 
 const getAuthToken = () => {
@@ -1043,8 +1459,7 @@ const getAuthToken = () => {
 };
 
 const getBaseUrl = () => {
-  // Fallback to a default URL if environment variable is not set
-  const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com"; // Update this to your backend URL
+  const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com";
   const baseUrl = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) || defaultUrl;
   console.log("Base URL:", baseUrl);
   return baseUrl;
@@ -1077,14 +1492,29 @@ export const runETL = async (data: ETLRequest): Promise<ETLResponse> => {
 
     const result = await response.json();
     console.log("API Response:", result);
-    if (result.body && result.body.body) {
-      console.log("S3 Output Path:", JSON.parse(result.body.body).s3_output || "Not specified");
-    }
     return result;
   } catch (error: any) {
     console.error("Fetch Error:", error.message);
     throw error;
   }
+};
+
+export const checkJobGName = async (gname: string): Promise<CheckJobGNameResponse> => {
+  const token = getAuthToken();
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/check-job-gname?gname=${encodeURIComponent(gname)}`;
+  
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const result: CheckJobGNameResponse = await response.json();
+  console.log("✅ Check Job GName Response - Status:", response.status, "Data:", result);
+  return { ...result, status_code: response.status }; // Include the HTTP status code in the response
 };
 
 interface DataSource {
@@ -1095,7 +1525,7 @@ interface DataSource {
   bucketName?: string;
   fileName?: string;
   inputPath?: string;
-  outputPath?: string;
+  output_path?: string;
 }
 
 interface Transformation {
@@ -1131,6 +1561,7 @@ export default function ETL() {
   const [isJobRunning, setIsJobRunning] = useState(false);
   const [bucket, setBucket] = useState<string>("");
   const [key, setKey] = useState<string>("");
+  const [jobName, setJobName] = useState<string>("");
 
   useEffect(() => {
     const storageData = validateLocalStorage();
@@ -1156,12 +1587,15 @@ export default function ETL() {
         bucketName: bucket,
         fileName: key,
         inputPath: `s3://${bucket}/${key}`,
-        outputPath: outputPath,
+        output_path: outputPath,
       },
     ]);
   }, [navigate, toast]);
 
   const handleScheduleJob = () => {
+    if (jobName) {
+      localStorage.setItem("jobName", jobName); // Store job name in localStorage
+    }
     navigate("/dashboard/schedule-job");
     toast({
       title: "Proceeding to Job Scheduling",
@@ -1172,9 +1606,12 @@ export default function ETL() {
   const handleGoBack = () => {
     navigate("/dashboard/business-logic");
   };
-  const handleSkip = () => {
-            localStorage.setItem('datatransformations', 'skipped');
 
+  const handleSkip = () => {
+    localStorage.setItem('datatransformations', 'skipped');
+    if (jobName) {
+      localStorage.setItem("jobName", jobName); // Store job name in localStorage
+    }
     navigate("/dashboard/schedule-job");
     toast({
       title: "NER Skipped",
@@ -1183,13 +1620,39 @@ export default function ETL() {
   };
 
   const handleRunJob = async () => {
-            localStorage.setItem('datatransformations', 'executed');
-    setIsJobRunning(true);
-    setTransformations((prev) =>
-      prev.map((t) => ({ ...t, status: "Running" as const, progress: 0 }))
-    );
+    if (!jobName) {
+      toast({
+        title: "Error",
+        description: "Please enter a job name before running the ETL job.",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    // Check job name uniqueness before proceeding
     try {
+      const checkJobResponse = await checkJobGName(jobName);
+      if (checkJobResponse.status_code === 409) {
+        toast({
+          title: "Validation Error",
+          description: "Same job name already exists. Please try a different name.",
+          variant: "destructive",
+        });
+        return; // Stop execution if 409 status
+      } else if (!checkJobResponse.success) {
+        toast({
+          title: "Validation Error",
+          description: "Job name is not available. Please try a different name.",
+          variant: "destructive",
+        });
+        return; // Stop execution if success is false for other status codes
+      }
+
+      setIsJobRunning(true);
+      setTransformations((prev) =>
+        prev.map((t) => ({ ...t, status: "Running" as const, progress: 0 }))
+      );
+
       // Simulate progress for each step sequentially
       for (let i = 0; i < transformations.length; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second per step
@@ -1215,26 +1678,26 @@ export default function ETL() {
       };
 
       if (Object.keys(file_paths).length > 0) {
-        const data: ETLRequest = { payload: { file_paths } };
+        const data: ETLRequest = { 
+          payload: { 
+            file_paths,
+            gname: jobName 
+          } 
+        };
         const response = await runETL(data);
         const bodyData = JSON.parse(response.body.body);
         
+        localStorage.setItem('datatransformations', 'executed');
+        localStorage.setItem("jobName", jobName); // Store job name in localStorage
         setIsJobRunning(false);
         setTransformations((prev) =>
           prev.map((t) => ({ ...t, status: "Completed" as const }))
         );
 
-        if (bodyData.s3_output) {
-          toast({
-            title: "Success",
-            description: `ETL job completed. Parquet file stored at ${bodyData.s3_output}`,
-          });
-        } else {
-          toast({
-            title: "Warning",
-            description: "ETL job completed.",
-          });
-        }
+        toast({
+          title: "Success",
+          description: `ETL job completed with method: ${bodyData.etl_method || "Glue"}`,
+        });
       }
     } catch (error: any) {
       setIsJobRunning(false);
@@ -1272,17 +1735,15 @@ export default function ETL() {
         <div className="flex items-center justify-between mb-6">
           <div className="text-start">
             <h1 className="text-3xl font-bold text-foreground">Data Transformations</h1>
-            {/* <p className="text-muted-foreground">Design, manage, and monitor your data pipelines</p> */}
           </div>
           <div className="flex items-center gap-4">
             <Button onClick={handleScheduleJob} variant="secondary">
               <Calendar className="w-4 h-4 mr-2" />
               Schedule Job
             </Button>
-           
             <Button
               onClick={handleRunJob}
-              disabled={isJobRunning}
+              disabled={isJobRunning || !jobName}
               className={cn(isJobRunning && "opacity-75")}
             >
               <Play className="w-4 h-4 mr-2" />
@@ -1302,6 +1763,16 @@ export default function ETL() {
               <CardDescription>Connected data sources for ingestion</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="jobName">Job Name</Label>
+                <Input
+                  id="jobName"
+                  type="text"
+                  value={jobName}
+                  onChange={(e) => setJobName(e.target.value)}
+                  placeholder="Enter job name"
+                />
+              </div>
               {dataSources.map((source) => (
                 <div key={source.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -1393,14 +1864,14 @@ export default function ETL() {
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-           <Button
-              variant="outline"
-              onClick={handleSkip}
-              className="flex items-center gap-2"
-            >
-              <SkipForward className="w-4 h-4" />
-              Skip
-            </Button>
+          <Button
+            variant="outline"
+            onClick={handleSkip}
+            className="flex items-center gap-2"
+          >
+            <SkipForward className="w-4 h-4" />
+            Skip
+          </Button>
         </div>
       </div>
     </div>
