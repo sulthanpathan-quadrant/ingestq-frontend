@@ -593,7 +593,7 @@ export interface BLValidationResponse {
 }
 
 const getBaseUrl = () => {
-  const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com";
+  const defaultUrl = "https://ingestq-backend-954554516.ap-south-1.elb.amazonaws.com/docs";
   const baseUrl = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) || defaultUrl;
   console.log("Base URL:", baseUrl);
   return baseUrl;
@@ -718,7 +718,7 @@ export default function BusinessLogic() {
   };
 
   const handleRunAllRules = async () => {
-            localStorage.setItem('businesslogic', 'used');
+            localStorage.setItem('businesslogic', 'executed');
 
     if (rules.length === 0) {
       toast({
@@ -995,7 +995,7 @@ export default function BusinessLogic() {
             onClick={handleContinueToETL}
           >
             <ArrowRight className="w-4 h-4 mr-2" />
-            Continue to ETL
+            Continue to Data transformations
           </Button>
         </div>
       </div>
@@ -1185,7 +1185,7 @@ export default function BusinessLogic() {
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <ArrowRight className="w-4 h-4 mr-2" />
-                    Continue to ETL
+                    Continue to Data Transformations
                   </Button>
                 </div>
               </div>

@@ -2119,7 +2119,7 @@ export default function Rules() {
     fetchDQRules();
   }, [toast, navigate]);
   const handleRunValidation = async () => {
-        localStorage.setItem('rules', 'used');
+        localStorage.setItem('rules', 'executed');
     setShowValidationDialog(true);
     setValidationStatus('running');
     setValidationProgress(0);

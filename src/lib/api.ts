@@ -227,10 +227,10 @@ export interface ETLResponse {
 
 // Create Job Config Types
 export interface JobStepConfig {
-  rules: "used" | "skipped";
-  ner: "used" | "skipped";
-  businessLogic: "used" | "skipped";
-  etl:"used"|"skipped";
+  rules: "executed" | "skipped";
+  ner: "executed" | "skipped";
+  businessLogic: "executed" | "skipped";
+  datatransformations:"executed"|"skipped";
 }
 
 export interface ScheduleDetails {
@@ -858,10 +858,52 @@ export const getJobs = async (): Promise<GetJobsResponse> => {
   return result;
 };
 
-// Run Step Function API
+
+// // Run Step Function API
+// export interface RunStepFunctionRequest {
+//   job_id: string;
+//   token: string;
+// }
+
+// export interface RunStepFunctionResponse {
+//   success: boolean;
+//   message: string;
+//   executionArn: string;
+//   startDate: string;
+// }
+
+
+// export const runStepFunction = async (
+//   data: RunStepFunctionRequest
+// ): Promise<RunStepFunctionResponse> => {
+//   const token = getAuthToken();
+//   const response = await fetch(`${BASE_URL}/run-step-function`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Authorization": `Bearer ${token}`,
+//     },
+//     body: JSON.stringify(data),
+//   });
+
+//   if (!response.ok) {
+//     const errorText = await response.text();
+//     throw new Error(
+//       `Failed to run step function: ${response.status} - ${errorText}`
+//     );
+//   }
+
+//   const result: RunStepFunctionResponse = await response.json();
+//   console.log("✅ Run Step Function Response:", result);
+//   return result;
+// };
+
+
 export interface RunStepFunctionRequest {
   job_id: string;
   token: string;
+  jobType?: string;
+  glueName?: string;
 }
 
 export interface RunStepFunctionResponse {
@@ -870,7 +912,6 @@ export interface RunStepFunctionResponse {
   executionArn: string;
   startDate: string;
 }
-
 
 export const runStepFunction = async (
   data: RunStepFunctionRequest
@@ -896,6 +937,8 @@ export const runStepFunction = async (
   console.log("✅ Run Step Function Response:", result);
   return result;
 };
+
+
 
 // Get Job Details API
 export interface GetJobDetailsResponse {
@@ -1345,5 +1388,45 @@ export const getPipelineJobs = async (pipelineId: string): Promise<GetPipelineJo
   }));
 
   console.log("✅ Get Pipeline Jobs Response:", result);
+  return result;
+};
+
+
+// ---------------- User Aggregated Metrics ----------------
+
+export interface UserAggregatedMetricsResponse {
+  success: boolean;
+  message: string;
+  metrics: {
+    avg_cpu_usage: number;
+    avg_memory_usage: number;
+    avg_success_rate: number;
+  };
+}
+
+export const getUserAggregatedMetrics = async (
+  userId: string
+): Promise<UserAggregatedMetricsResponse> => {
+  const token = getAuthToken();
+  const response = await fetch(
+    `${BASE_URL}/user-aggregated-metrics?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${token}` },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `API Error (${response.status}) at ${new Date().toISOString()}: ${errorText}`
+    );
+    throw new Error(
+      `Failed to fetch user aggregated metrics: ${response.status} - ${errorText}`
+    );
+  }
+
+  const result: UserAggregatedMetricsResponse = await response.json();
+  console.log("✅ User Aggregated Metrics Response:", result);
   return result;
 };

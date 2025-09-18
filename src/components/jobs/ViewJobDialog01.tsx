@@ -551,7 +551,7 @@ export default function ViewJobDialog01({ job, open, onOpenChange }: ViewJobDial
       case 'collection': return Database;
       case 'rules': return Settings;
       case 'ner': return Settings;
-      case 'etl': return Settings;
+      case 'datatransformations': return Settings;
       case 'businesslogic': return Settings;
       default: return Settings;
     }

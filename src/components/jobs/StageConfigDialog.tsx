@@ -572,7 +572,7 @@ const stageTypeInfo = {
   connection: { 
     icon: Database, 
     color: '#3b82f6', 
-    label: 'ETL',
+    label: 'Data Transformations',
     description: 'Extract, Transform, Load processes',
     component: () => <Card><CardContent className="p-4 text-center text-muted-foreground">Click on save configuration to run this step.</CardContent></Card>
   },
@@ -619,7 +619,7 @@ export default function StageConfigDialog({
         localStorage.setItem('businesslogic', 'used');
         break;
       case 'connection':
-        localStorage.setItem('etl', 'used');
+        localStorage.setItem('datatransformations', 'executed');
         break;
       default:
         break;
@@ -641,7 +641,7 @@ export default function StageConfigDialog({
         localStorage.setItem('businesslogic', 'skipped');
         break;
       case 'connection':
-        localStorage.setItem('etl', 'skipped');
+        localStorage.setItem('datatransformations', 'skipped');
         break;
       default:
         break;

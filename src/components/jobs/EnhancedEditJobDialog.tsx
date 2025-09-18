@@ -1400,7 +1400,7 @@ const availableSteps = [
   { id: 'validation', name: 'DQ Rules', icon: Filter, color: '#f59e0b', description: 'Validate data quality and consistency' },
   { id: 'processing', name: 'NER', icon: Settings, color: '#ef4444', description: 'Named Entity Recognition processing' },
   { id: 'collection', name: 'Business Logic', icon: Database, color: '#6b7280', description: 'Apply business logic to collected data' },
-  { id: 'connection', name: 'ETL', icon: Database, color: '#3b82f6', description: 'Extract, Transform, Load processes' },
+  { id: 'connection', name: 'Data Transformations', icon: Database, color: '#3b82f6', description: 'Extract, Transform, Load processes' },
   { id: 'transfer', name: 'Schedule Jobs', icon: Target, color: '#10b981', description: 'Schedule automated job runs' },
 ];
 
@@ -1542,7 +1542,7 @@ function SortableStageItem({ stage, index, onEdit, onDelete }: {
                       localStorage.setItem('businesslogic', 'skipped');
                       break;
                     case 'connection':
-                      localStorage.setItem('etl', 'skipped');
+                      localStorage.setItem('datatransformations', 'skipped');
                       break;
                     default:
                       break;
@@ -1645,11 +1645,11 @@ export default function EnhancedEditJobDialog({
       setStages(prev => {
         const newStages = [...prev];
         newStages.splice(index, 0, newStage);
-        if (newStage.type === 'loading') localStorage.setItem('schema', 'used');
-        if (newStage.type === 'validation') localStorage.setItem('rules', 'used');
-        if (newStage.type === 'processing') localStorage.setItem('ner', 'used');
-        if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'used');
-        if (newStage.type === 'connection') localStorage.setItem('etl', 'used');
+        if (newStage.type === 'loading') localStorage.setItem('schema', 'executed');
+        if (newStage.type === 'validation') localStorage.setItem('rules', 'executed');
+        if (newStage.type === 'processing') localStorage.setItem('ner', 'executed');
+        if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'executed');
+        if (newStage.type === 'connection') localStorage.setItem('datatransformations', 'executed');
         return newStages;
       });
       
@@ -1670,11 +1670,11 @@ export default function EnhancedEditJobDialog({
       config: {}
     };
     setStages(prev => [...prev, newStage]);
-    if (newStage.type === 'loading') localStorage.setItem('schema', 'used');
-    if (newStage.type === 'validation') localStorage.setItem('rules', 'used');
-    if (newStage.type === 'processing') localStorage.setItem('ner', 'used');
-    if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'used');
-    if (newStage.type === 'connection') localStorage.setItem('etl', 'used');
+    if (newStage.type === 'loading') localStorage.setItem('schema', 'executed');
+    if (newStage.type === 'validation') localStorage.setItem('rules', 'executed');
+    if (newStage.type === 'processing') localStorage.setItem('ner', 'executed');
+    if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'executed');
+    if (newStage.type === 'connection') localStorage.setItem('datatransformations', 'executed');
     
     toast({
       title: "Stage Added",

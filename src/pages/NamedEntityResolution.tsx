@@ -1457,7 +1457,7 @@ export default function NamedEntityResolution() {
   };
 
   const handleRunNER = () => {
-            localStorage.setItem('ner', 'used');
+            localStorage.setItem('ner', 'executed');
     hasFetched.current = false; // Allow fetchMatches to run again
     fetchMatches();
     toast({

@@ -1173,7 +1173,7 @@ export default function ETL() {
     navigate("/dashboard/business-logic");
   };
   const handleSkip = () => {
-            localStorage.setItem('etl', 'skipped');
+            localStorage.setItem('datatransformations', 'skipped');
 
     navigate("/dashboard/schedule-job");
     toast({
@@ -1183,7 +1183,7 @@ export default function ETL() {
   };
 
   const handleRunJob = async () => {
-            localStorage.setItem('etl', 'used');
+            localStorage.setItem('datatransformations', 'executed');
     setIsJobRunning(true);
     setTransformations((prev) =>
       prev.map((t) => ({ ...t, status: "Running" as const, progress: 0 }))
@@ -1271,25 +1271,22 @@ export default function ETL() {
         {/* Header with Actions */}
         <div className="flex items-center justify-between mb-6">
           <div className="text-start">
-            <h1 className="text-3xl font-bold text-foreground">ETL Pipeline</h1>
-            <p className="text-muted-foreground">Design, manage, and monitor your data pipelines</p>
+            <h1 className="text-3xl font-bold text-foreground">Data Transformations</h1>
+            {/* <p className="text-muted-foreground">Design, manage, and monitor your data pipelines</p> */}
           </div>
           <div className="flex items-center gap-4">
             <Button onClick={handleScheduleJob} variant="secondary">
               <Calendar className="w-4 h-4 mr-2" />
               Schedule Job
             </Button>
-            <Button onClick={handleViewReports} variant="outline">
-              <FileText className="w-4 h-4 mr-2" />
-              View Reports
-            </Button>
+           
             <Button
               onClick={handleRunJob}
               disabled={isJobRunning}
               className={cn(isJobRunning && "opacity-75")}
             >
               <Play className="w-4 h-4 mr-2" />
-              {isJobRunning ? "Running..." : "Run ETL"}
+              {isJobRunning ? "Running..." : "Run Steps"}
             </Button>
           </div>
         </div>

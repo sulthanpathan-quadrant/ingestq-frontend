@@ -668,7 +668,7 @@ const availableSteps = [
   { id: 'validation', name: 'DQ Rules', icon: Filter, color: '#f59e0b', description: 'Validate data quality and consistency', fixed: false },
   { id: 'processing', name: 'NER', icon: Settings, color: '#ef4444', description: 'Named Entity Recognition processing', fixed: false },
   { id: 'collection', name: 'Business Logic', icon: Database, color: '#6b7280', description: 'Apply business logic to collected data', fixed: false },
-  { id: 'connection', name: 'ETL', icon: Database, color: '#3b82f6', description: 'Extract, Transform, Load processes', fixed: false },
+  { id: 'connection', name: 'Data Transformations', icon: Database, color: '#3b82f6', description: 'Extract, Transform, Load processes', fixed: false },
   { id: 'transfer', name: 'Schedule Jobs', icon: Target, color: '#10b981', description: 'Schedule automated job runs', fixed: true },
 ];
  
@@ -880,12 +880,12 @@ export default function EnhancedEditJobDialog({
         rules: 'validation',
         ner: 'processing',
         businessLogic: 'collection',
-        etl: 'connection'
+        datatransformations: 'connection'
       };
  
       // Include used steps based on job.steps
       const usedSteps: JobStage[] = Object.entries(job.steps)
-        .filter(([_, status]) => status === 'used')
+        .filter(([_, status]) => status === 'executed')
         .map(([key]) => {
           const stepId = stepTypeMapping[key];
           const stepInfo = availableSteps.find(step => step.id === stepId);
@@ -917,7 +917,7 @@ export default function EnhancedEditJobDialog({
       localStorage.setItem('rules', job.steps.rules);
       localStorage.setItem('ner', job.steps.ner);
       localStorage.setItem('businesslogic', job.steps.businessLogic);
-      localStorage.setItem('etl', job.steps.etl);
+      localStorage.setItem('datatransformations', job.steps.datatransformations);
     }
   }, [job]);
  
@@ -989,10 +989,10 @@ export default function EnhancedEditJobDialog({
       setStages(prev => {
         const newStages = [...prev];
         newStages.splice(index, 0, newStage);
-        if (newStage.type === 'validation') localStorage.setItem('rules', 'used');
-        if (newStage.type === 'processing') localStorage.setItem('ner', 'used');
-        if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'used');
-        if (newStage.type === 'connection') localStorage.setItem('etl', 'used');
+        if (newStage.type === 'validation') localStorage.setItem('rules', 'executed');
+        if (newStage.type === 'processing') localStorage.setItem('ner', 'executed');
+        if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'executed');
+        if (newStage.type === 'connection') localStorage.setItem('datatransformations', 'executed');
         return newStages;
       });
      
@@ -1019,10 +1019,10 @@ export default function EnhancedEditJobDialog({
       const loadingIndex = prev.findIndex(s => s.type === 'loading');
       const newStages = [...prev];
       newStages.splice(loadingIndex, 0, newStage);
-      if (newStage.type === 'validation') localStorage.setItem('rules', 'used');
-      if (newStage.type === 'processing') localStorage.setItem('ner', 'used');
-      if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'used');
-      if (newStage.type === 'connection') localStorage.setItem('etl', 'used');
+      if (newStage.type === 'validation') localStorage.setItem('rules', 'executed');
+      if (newStage.type === 'processing') localStorage.setItem('ner', 'executed');
+      if (newStage.type === 'collection') localStorage.setItem('businesslogic', 'executed');
+      if (newStage.type === 'connection') localStorage.setItem('datatransformations', 'executed');
       return newStages;
     });
    
@@ -1056,7 +1056,7 @@ export default function EnhancedEditJobDialog({
           localStorage.setItem('businesslogic', 'skipped');
           break;
         case 'connection':
-          localStorage.setItem('etl', 'skipped');
+          localStorage.setItem('datatransformations', 'skipped');
           break;
         default:
           break;

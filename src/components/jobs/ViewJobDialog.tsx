@@ -309,10 +309,10 @@ export default function ViewJobDialog({ job, open, onOpenChange }: ViewJobDialog
                         {job.status}
                       </Badge>
                     </div>
-                    <div>
+                    {/* <div>
                       <span className="text-sm text-muted-foreground">Pipeline Connected:</span>
                       <p className="font-medium">{isPipelineConnected}</p>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
