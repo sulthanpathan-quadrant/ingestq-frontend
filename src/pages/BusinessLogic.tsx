@@ -342,7 +342,6 @@ export default function BusinessLogic() {
       })
     }
   }
-
   const handleViewSource = async () => {
     setLoadingFile(true)
     try {
@@ -717,33 +716,7 @@ export default function BusinessLogic() {
                   <Button variant="outline" onClick={() => setShowValidationDialog(false)} className="flex-1">
                     Edit Business Rules
                   </Button>
-                  {validationResults.failed > 0 && validationFailures.length > 0 && (
-                    <Button
-                      onClick={handleViewFailureDetails}
-                      variant="outline"
-                      className="flex-1 border-red-600 text-red-600 hover:bg-red-50 bg-transparent"
-                    >
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      View Failed Rows
-                    </Button>
-                  )}
-                  {validationResults.failed > 0 && (
-                    <Button
-                      onClick={handleViewSource}
-                      disabled={loadingFile}
-                      variant="outline"
-                      className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                    >
-                      {loadingFile ? (
-                        "Loading..."
-                      ) : (
-                        <>
-                          <FileText className="w-4 h-4 mr-2" />
-                          View File
-                        </>
-                      )}
-                    </Button>
-                  )}
+          #Paster here
                   <Button onClick={handleContinueToETL} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
                     <ArrowRight className="w-4 h-4 mr-2" />
                     Continue to Data Transformations
