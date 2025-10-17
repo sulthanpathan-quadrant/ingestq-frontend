@@ -33,7 +33,6 @@ const jobCategories = [
   { id: 'lambda', name: 'Lambda Jobs', icon: Zap },
   { id: 'batch', name: 'Batch Jobs', icon: Package },
   { id: 'adf', name: 'ADF Jobs', icon: Factory },
-  {id: 'fabric', name: 'Fabric Jobs', icon: CloudCog },
   { id: 'airflow', name: 'Airflow Jobs', icon: HardDrive },
 
 ];
